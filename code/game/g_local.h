@@ -19,6 +19,12 @@
 #define	GAMEVERSION		LM_SYMBOL_COLOR LM_START_SYMBOL " " LM_TEXT_COLOR LM_GAMEVERSION " " LM_SYMBOL_COLOR LM_END_SYMBOL
 //[/Attano]
 
+//[Attano] - Name system.
+#define	LM_NETNAME			24
+#define	MAX_NETNAME			64
+#define	MAX_MODNETNAME		(MAX_NETNAME - 12)
+//[/Attano]
+
 #define BODY_QUEUE_SIZE		8
 
 #define INFINITE			1000000
@@ -326,7 +332,7 @@ typedef struct {
 } mvclientSession_t;
 
 //
-#define MAX_NETNAME			36
+
 #define	MAX_VOTE_COUNT		3
 
 // client data that stays across multiple respawns, but is cleared

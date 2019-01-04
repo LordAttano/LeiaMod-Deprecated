@@ -1,4 +1,4 @@
-﻿# Make sure the user is not executing this script directly
+# Make sure the user is not executing this script directly
 if(NOT InMVSDK)
 	message(FATAL_ERROR "Use the top-level cmake script!")
 endif(NOT InMVSDK)
@@ -86,6 +86,7 @@ set(MVGAMESOURCES
 	"${SRCDir}/game/g_multiversion_syscalls.c"
 	"${SRCDir}/game/bg_multiversion.c"
 	"${SRCDir}/game/animMappingTable.c"
+	"${SRCDir}/game/g_commontools.c"
 )
 
 set(MVGAMEASM

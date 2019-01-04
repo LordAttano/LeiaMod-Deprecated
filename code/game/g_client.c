@@ -10,6 +10,10 @@ static vec3_t	playerMaxs = {15, 15, DEFAULT_MAXS_2};
 
 forcedata_t Client_Force[MAX_CLIENTS];
 
+//[Attano] - External functions.
+extern char *LM_SanitizeString(char *destination, char *source, int destinationSize);
+//[/Attano]
+
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) initial
 potential spawning position for deathmatch games.
 The first time a player enters the game, they will be at an 'initial' spot.
@@ -896,6 +900,16 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 	char	*p;
 	int		spaces;
 
+	//[Attano] - Name system.
+	char	 outbuf[MAX_STRING_CHARS];
+	char	 tempbuf[MAX_STRING_CHARS];
+	char	 shortbuf[MAX_NETNAME];
+	int		 i, count;
+
+	memset(outbuf, 0, sizeof(outbuf));
+	memset(shortbuf, 0, sizeof(shortbuf));
+	//[/Attano]
+
 	//save room for trailing null byte
 	outSize--;
 
@@ -923,11 +937,11 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 				break;
 			}
 
-			// don't allow black in a name, period
+			/* Note: We're not racist, so we allow black characters.
 			if( ColorIndex(*in) == 0 ) {
 				in++;
 				continue;
-			}
+			}*/
 
 			// make sure room in dest for both chars
 			if( len > outSize - 2 ) {
@@ -961,10 +975,40 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 	}
 	*out = 0;
 
-	// don't allow empty names
-	if( *p == 0 || colorlessLen == 0 ) {
-		Q_strncpyz( p, "Padawan", outSize );
+	//[Attano] - Name system.
+	if (strlen(p) > MAX_MODNETNAME)
+	{
+		// Loop through the name to make sure the total name length, excluding those we reserve for duplicate names, does not exceed the maximum length with colours.
+		for (i = 0; i < MAX_MODNETNAME; i++)
+		{
+			shortbuf[i] = p[i];
+		}
+
+		strcpy(p, shortbuf);
 	}
+
+	// Loop through the name to make sure its length without colours is no longer than what we allow.
+	count = 0;
+
+	for (i = 0; i < strlen(p); i++) {
+		outbuf[count] = p[i];
+		count++;
+		
+		memset(tempbuf, 0, sizeof(tempbuf));
+		LM_SanitizeString(tempbuf, outbuf, sizeof(tempbuf));
+
+		// Sanitized name is too long. Break.
+		if (strlen(tempbuf) >= LM_NETNAME) {
+			break;
+		}
+	}
+
+	if (*p == 0 || colorlessLen == 0) {
+		Q_strncpyz(p, "^7Padawan", outSize);
+	} else {
+		Q_strncpyz(p, outbuf, outSize);
+	}
+	//[/Attano]
 }
 
 #ifdef _DEBUG
@@ -1140,6 +1184,12 @@ void ClientUserinfoChanged( int clientNum ) {
 	static const char	validChars[]  = " ~QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890<>?,./';:][{}`-=!@#$^&*()_+|";
 	int					i, j, isValidChar;
 	char				*ptr;
+	
+	//[Attano] - New variables.
+	int	 notblank;
+	char blankbuf[MAX_NETNAME];
+	char cleanbuf[MAX_NETNAME];
+	//[/Attano]
 
 	ent = g_entities + clientNum;
 	client = ent->client;
@@ -1189,6 +1239,24 @@ void ClientUserinfoChanged( int clientNum ) {
 		memset( ptr, '.', 3 );
 		ptr = strstr( s, "@@@" );
 	}
+
+	//[Attano] - Name system. Prevent blank names.
+	LM_SanitizeString(cleanbuf, s, sizeof(cleanbuf));
+	Q_strncpyz(blankbuf, cleanbuf, sizeof(blankbuf));
+
+	notblank = qfalse;
+
+	for (i = 0; i < strlen(blankbuf); i++)
+	{
+		if (blankbuf[i] != ' ')
+		{
+			notblank = qtrue;
+		}
+	}
+
+	if (!notblank)
+		strcpy(s, "^7Padawan");
+	//[/Attano]
 	
 	ClientCleanName( s, ent->client->pers.netname, sizeof(ent->client->pers.netname) );
 	Info_RemoveKey( userinfo, "name" );
