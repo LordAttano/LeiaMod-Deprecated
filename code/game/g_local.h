@@ -8,8 +8,16 @@
 
 //==================================================================
 
-// the "gameversion" client command will print this plus compile date
-#define	GAMEVERSION	"basemv"
+//[Attano] - Mod name, colours, and symbols.
+#define LM_TEXT_COLOR	"^7"
+#define LM_SYMBOL_COLOR "^3"
+#define LM_START_SYMBOL ">>"
+#define LM_END_SYMBOL	"<<"
+#define LM_SEPARATOR	"|"
+
+#define LM_GAMEVERSION	"LibertyMod"
+#define	GAMEVERSION		LM_SYMBOL_COLOR LM_START_SYMBOL " " LM_TEXT_COLOR LM_GAMEVERSION " " LM_SYMBOL_COLOR LM_END_SYMBOL
+//[/Attano]
 
 #define BODY_QUEUE_SIZE		8
 
