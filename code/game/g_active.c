@@ -1002,6 +1002,10 @@ void ClientThink_real( gentity_t *ent ) {
 	int			i;
 	usercmd_t	*ucmd;
 
+	//[Attano] - New variables.
+	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
+	//[/Attano]
+
 	client = ent->client;
 
 	if ( !ent || !ent->client ) return;
@@ -1053,6 +1057,24 @@ void ClientThink_real( gentity_t *ent ) {
 		ClientIntermissionThink( client );
 		return;
 	}
+	
+	//[Attano] - Tag protection.
+	if (!mvSess->player.loggedas && mvSess->common.tagProtection[1] && (strlen(lm_tagProtection.string) >= 2))
+	{
+		if (mvSess->common.tagProtection[0] <= level.time)
+		{
+			mvSess->common.tagProtection[0] = level.time + 1000;
+			mvSess->common.tagProtection[1] -= 1;
+
+			trap_SendServerCommand(ent - g_entities, va("cp \"%s%s %sTag protection %s%s\n%sYour name contain a protected tag%s!\n%sPlease login or change your name%s!\n\n%sTime remaining%s:\n%s%i ^7seconds%s.\n\"", LM_SYMBOL_COLOR, LM_START_SYMBOL, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_END_SYMBOL, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_SYMBOL_COLOR, mvSess->common.tagProtection[1], LM_SYMBOL_COLOR));
+
+			if (!mvSess->common.tagProtection[1])
+			{
+				trap_DropClient(ent - g_entities, "^7has been kicked by the tag protection system.");
+			}
+		}
+	}
+	//[/Attano]
 
 	// spectators don't do much
 	if ( client->sess.sessionTeam == TEAM_SPECTATOR ) {
@@ -1092,6 +1114,12 @@ void ClientThink_real( gentity_t *ent ) {
 		{
 			client->ps.pm_type = client->ps.forceGripChangeMovetype;
 		}
+		//[Attano] - New PM conditions.
+		else if (!mvSess->player.loggedas && mvSess->common.tagProtection[1] && strlen(lm_tagProtection.string) >= 2)
+		{
+			client->ps.pm_type = PM_FREEZE;
+		}
+		//[/Attano]
 		else
 		{
 			client->ps.pm_type = PM_NORMAL;

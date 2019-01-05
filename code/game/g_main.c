@@ -142,6 +142,10 @@ vmCvar_t	g_submodelWorkaround;
 
 vmCvar_t	g_MVSDK;
 
+//[Attano] - cVars.
+vmCvar_t	lm_tagProtection;
+//[/Attano]
+
 int gDuelist1 = -1;
 int gDuelist2 = -1;
 
@@ -313,6 +317,10 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_submodelWorkaround, "g_submodelWorkaround", "0", CVAR_ARCHIVE, 0, qtrue },
 
 	{ &g_MVSDK, "g_MVSDK", MVSDK_VERSION, CVAR_ROM | CVAR_SERVERINFO, 0, qfalse },
+
+	//[Attano] - cVars.
+	{ &lm_tagProtection, "lm_tagProtection", "", CVAR_ARCHIVE, 0, qfalse },
+	//[/Attano]
 };
 
 // bk001129 - made static to avoid aliasing

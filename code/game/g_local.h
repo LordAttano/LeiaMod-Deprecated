@@ -11,6 +11,8 @@
 //[Attano] - Mod name, colours, and symbols.
 #define LM_TEXT_COLOR	"^7"
 #define LM_SYMBOL_COLOR "^3"
+#define LM_SUCCESS_COLOR "^2"
+#define LM_ERROR_COLOR "^1"
 #define LM_START_SYMBOL ">>"
 #define LM_END_SYMBOL	"<<"
 #define LM_SEPARATOR	"|"
@@ -325,10 +327,25 @@ typedef struct {
 	qboolean	teamLeader;			// true when this client is a team leader
 } clientSession_t;
 
+//[Attano] - New sorted structs.
+// Common struct for general things, such as chat protection, tag protection, CP timers, etc.
+typedef struct {
+	int			tagProtection[2]; // Level.time, seconds.
+} lmCommon_t;
+
+// Player struct for anything related to them, such as stat tracking, logins, etc.
+typedef struct {
+	int			loggedas; // Which admin level you are currently logged in as. Subject to change as there is no login system as of yet.
+} lmPlayer_t;
+//[/Attano]
+
 // JK2MV
 typedef struct {
 	int			clientIP[4];
 	qboolean	localClient;
+
+	lmCommon_t	common;
+	lmPlayer_t	player;
 } mvclientSession_t;
 
 //
@@ -1091,6 +1108,10 @@ extern	vmCvar_t	g_connectinglimit;
 extern	vmCvar_t	g_mv_forcePowerDisableMode;
 
 extern	vmCvar_t	g_submodelWorkaround;
+
+//[Attano] - cVars.
+extern	vmCvar_t	lm_tagProtection;
+//[/Attano]
 
 void	trap_Printf( const char *fmt );
 Q_NORETURN void	trap_Error( const char *fmt );

@@ -894,7 +894,7 @@ static void ForceClientSkin( gclient_t *client, char *model, const char *skin ) 
 ClientCheckName
 ============
 */
-static void ClientCleanName( const char *in, char *out, int outSize ) {
+static void ClientCleanName( gentity_t *ent, const char *in, char *out, int outSize ) {
 	int		len, colorlessLen;
 	char	ch;
 	char	*p;
@@ -904,7 +904,10 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 	char	 outbuf[MAX_STRING_CHARS];
 	char	 tempbuf[MAX_STRING_CHARS];
 	char	 shortbuf[MAX_NETNAME];
+	char	 tagbuf[MAX_NETNAME];
 	int		 i, count;
+
+	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
 
 	memset(outbuf, 0, sizeof(outbuf));
 	memset(shortbuf, 0, sizeof(shortbuf));
@@ -990,7 +993,8 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 	// Loop through the name to make sure its length without colours is no longer than what we allow.
 	count = 0;
 
-	for (i = 0; i < strlen(p); i++) {
+	for (i = 0; i < strlen(p); i++) 
+	{
 		outbuf[count] = p[i];
 		count++;
 		
@@ -998,14 +1002,41 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 		LM_SanitizeString(tempbuf, outbuf, sizeof(tempbuf));
 
 		// Sanitized name is too long. Break.
-		if (strlen(tempbuf) >= LM_NETNAME) {
+		if (strlen(tempbuf) >= LM_NETNAME) 
 			break;
-		}
 	}
 
-	if (*p == 0 || colorlessLen == 0) {
+	//[Attano] - Tag protection. Seems to be something some servers use.
+	if (!(ent->r.svFlags & SVF_BOT) && strlen(lm_tagProtection.string) >= 2)
+	{
+		// Always remember to wash your hands.
+		LM_SanitizeString(tagbuf, lm_tagProtection.string, sizeof(tagbuf));
+
+		// Tag found!
+		if (strstr(tempbuf, tagbuf))
+		{
+			// No timer set at the moment, so we initiate a new one.
+			if (!mvSess->common.tagProtection[1])
+			{
+				mvSess->common.tagProtection[0] = level.time + 1000;
+				mvSess->common.tagProtection[1] = 30;
+			}
+		}
+		else
+		{
+			// No tag found on name change.
+			mvSess->common.tagProtection[0] = 0;
+			mvSess->common.tagProtection[1] = 0;
+		}
+	}
+	//[/Attano]
+
+	if (*p == 0 || colorlessLen == 0) 
+	{
 		Q_strncpyz(p, "^7Padawan", outSize);
-	} else {
+	} 
+	else 
+	{
 		Q_strncpyz(p, outbuf, outSize);
 	}
 	//[/Attano]
@@ -1249,16 +1280,14 @@ void ClientUserinfoChanged( int clientNum ) {
 	for (i = 0; i < strlen(blankbuf); i++)
 	{
 		if (blankbuf[i] != ' ')
-		{
 			notblank = qtrue;
-		}
 	}
 
 	if (!notblank)
 		strcpy(s, "^7Padawan");
 	//[/Attano]
 	
-	ClientCleanName( s, ent->client->pers.netname, sizeof(ent->client->pers.netname) );
+	ClientCleanName( ent, s, ent->client->pers.netname, sizeof(ent->client->pers.netname) );
 	Info_RemoveKey( userinfo, "name" );
 	Info_SetValueForKey( userinfo, "name", ent->client->pers.netname );
 	trap_SetUserinfo( clientNum, userinfo );
