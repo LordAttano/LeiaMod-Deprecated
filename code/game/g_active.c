@@ -1058,7 +1058,7 @@ void ClientThink_real( gentity_t *ent ) {
 		return;
 	}
 	
-	//[Attano] - Tag protection.
+	//[Attano] - Tag protection and centerprints.
 	if (!mvSess->player.loggedas && mvSess->common.tagProtection[1] && (strlen(lm_tagProtection.string) >= 2))
 	{
 		if (mvSess->common.tagProtection[0] <= level.time)
@@ -1070,8 +1070,15 @@ void ClientThink_real( gentity_t *ent ) {
 
 			if (!mvSess->common.tagProtection[1])
 			{
-				trap_DropClient(ent - g_entities, "^7has been kicked by the tag protection system.");
+				trap_DropClient(ent - g_entities, va("%shas been kicked by the tag protection system%s.", LM_TEXT_COLOR, LM_SYMBOL_COLOR));
 			}
+		}
+	}
+	else
+	{
+		if (mvSess->common.centerPrintTimer[0] < level.time && mvSess->common.centerPrintTimer[1])
+		{
+			LM_CPHandler(ent, mvSess->common.centerPrintMessage);
 		}
 	}
 	//[/Attano]

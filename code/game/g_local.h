@@ -331,6 +331,9 @@ typedef struct {
 // Common struct for general things, such as chat protection, tag protection, CP timers, etc.
 typedef struct {
 	int			tagProtection[2]; // Level.time, seconds.
+
+	int			centerPrintTimer[2]; // Level.time, seconds.
+	char		centerPrintMessage[MAX_STRING_CHARS];
 } lmCommon_t;
 
 // Player struct for anything related to them, such as stat tracking, logins, etc.
@@ -1111,6 +1114,9 @@ extern	vmCvar_t	g_submodelWorkaround;
 
 //[Attano] - cVars.
 extern	vmCvar_t	lm_tagProtection;
+
+extern	vmCvar_t	lm_centerPrintTime;
+extern	vmCvar_t	lm_motd;
 //[/Attano]
 
 void	trap_Printf( const char *fmt );

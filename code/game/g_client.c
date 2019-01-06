@@ -1787,6 +1787,14 @@ void ClientBegin( int clientNum, qboolean allowTeamReset ) {
 		tent = G_TempEntity( ent->client->ps.origin, EV_PLAYER_TELEPORT_IN );
 		tent->s.clientNum = ent->s.clientNum;
 
+		//[Attano] - Greeting and MOTD.
+		if (g_gametype.integer != GT_TOURNAMENT)
+		{
+			LM_CPHandler(ent, lm_motd.string);
+			trap_SendServerCommand(clientNum, va("print \"%s\n%sMaintained by Attano and Flendo%s.\n\"", GAMEVERSION, LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+		}
+		//[/Attano]
+
 		if ( g_gametype.integer != GT_TOURNAMENT  ) {
 			trap_SendServerCommand( -1, va("print \"%s" S_COLOR_WHITE " %s\n\"", client->pers.netname, G_GetStripEdString("SVINGAME", "PLENTER")) );
 		}

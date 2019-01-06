@@ -31,3 +31,64 @@ char *LM_SanitizeString(char *destination, char *source, int destinationSize)
 	Q_strncpyz(destination, clean, destinationSize);
 	return destination;
 }
+
+void LM_StringEscape(char *out, char *in, int outSize)
+{
+	char	ch, ch1;
+	int		len = 0;
+	
+	outSize--;
+
+	while (1)
+	{
+		ch  = *in++;
+		ch1 = *in;
+
+		if (ch == '\\' && ch1 == 'n')
+		{
+			in++;
+			*out++ = '\n';
+		}
+		else
+		{
+			*out++ = ch;
+		}
+
+		if (len > outSize - 1)
+			break;
+
+		len++;
+	}
+}
+
+void LM_CPHandler(gentity_t *ent, char *message)
+{
+	char outbuf[MAX_STRING_CHARS];
+	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
+
+	// Only allow one centerprint at a time.
+	if (level.time > mvSess->common.centerPrintTimer[0] && !mvSess->common.centerPrintTimer[1])
+	{
+		memset(mvSess->common.centerPrintMessage, 0, sizeof(mvSess->common.centerPrintMessage));
+		mvSess->common.centerPrintTimer[0] = level.time + 1000;
+		mvSess->common.centerPrintTimer[1] = (lm_centerPrintTime.integer - 2);
+
+		if (mvSess->common.centerPrintTimer[1] < 0)
+		{
+			mvSess->common.centerPrintTimer[1] = 0;
+		}
+
+		Q_strncpyz(mvSess->common.centerPrintMessage, message, sizeof(mvSess->common.centerPrintMessage));
+	}
+	else if (mvSess->common.centerPrintTimer[0] < level.time && mvSess->common.centerPrintTimer[1])
+	{
+		mvSess->common.centerPrintTimer[0]  = level.time + 1000;
+		mvSess->common.centerPrintTimer[1] -= 1;
+	}
+
+	if (strlen(mvSess->common.centerPrintMessage))
+	{
+		LM_StringEscape(outbuf, mvSess->common.centerPrintMessage, sizeof(outbuf));
+		trap_SendServerCommand(ent - g_entities, va("cp \"%s\"", outbuf));
+	}
+}
