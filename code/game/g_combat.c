@@ -3071,9 +3071,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		{
 			// Only block damage if we're not in a duel.
 			if ((mvSessTarg->common.chatProtection[0]) && !targ->client->ps.duelInProgress)
-			{
 				return;
-			}
 		}
 	}
 	//[/Attano]

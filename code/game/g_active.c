@@ -1661,9 +1661,7 @@ void ClientThink_real( gentity_t *ent ) {
 
 		//[Attano] - Prevent kicks if ...
 		if (((mvSessKicked->common.chatProtection[0]) && !faceKicked->client->ps.duelInProgress))
-		{
 			faceKicked = NULL;
-		}
 		//[/Attano]
 
 		if (faceKicked && faceKicked->client && (!OnSameTeam(ent, faceKicked) || g_friendlyFire.integer) &&

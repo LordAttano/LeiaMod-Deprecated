@@ -1123,6 +1123,8 @@ extern	vmCvar_t	lm_chatProtectionTime;
 
 extern	vmCvar_t	lm_centerPrintTime;
 extern	vmCvar_t	lm_motd;
+
+extern	vmCvar_t	lm_forceImmunity;
 //[/Attano]
 
 void	trap_Printf( const char *fmt );
