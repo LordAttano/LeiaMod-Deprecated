@@ -3024,6 +3024,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	float		hamt = 0;
 	float		shieldAbsorbed = 0;
 
+	//[Attano] - New variables.
+	mvclientSession_t *mvSessTarg = &mv_clientSessions[targ - g_entities];
+	//[/Attano]
+
 	if ( !targ ) return;
 
 	if (targ && targ->damageRedirect)
@@ -3058,6 +3062,21 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			return;
 		}
 	}
+
+	//[Attano] - Except for a few cases, prevent damage if ...
+	if (mod != MOD_CRUSH && mod != MOD_TELEFRAG && mod != MOD_SUICIDE && mod != MOD_TRIGGER_HURT && mod != MOD_WATER && mod != MOD_SLIME && mod != MOD_LAVA 
+		&& ((targ && targ->client && targ->inuse) && (attacker && attacker->client && attacker->inuse)))
+	{
+		if (mvSessTarg->common.chatProtection[0])
+		{
+			// Only block damage if we're not in a duel.
+			if ((mvSessTarg->common.chatProtection[0]) && !targ->client->ps.duelInProgress)
+			{
+				return;
+			}
+		}
+	}
+	//[/Attano]
 
 	if (targ && targ->client && (targ->client->ps.fd.forcePowersActive & (1 << FP_RAGE)))
 	{

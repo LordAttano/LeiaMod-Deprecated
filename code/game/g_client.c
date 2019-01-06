@@ -1019,7 +1019,7 @@ static void ClientCleanName( gentity_t *ent, const char *in, char *out, int outS
 			if (!mvSess->common.tagProtection[1])
 			{
 				mvSess->common.tagProtection[0] = level.time + 1000;
-				mvSess->common.tagProtection[1] = 30;
+				mvSess->common.tagProtection[1] = lm_tagProtectionTime.integer;
 			}
 		}
 		else

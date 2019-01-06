@@ -144,6 +144,10 @@ vmCvar_t	g_MVSDK;
 
 //[Attano] - cVars.
 vmCvar_t	lm_tagProtection;
+vmCvar_t	lm_tagProtectionTime;
+
+vmCvar_t	lm_chatProtection;
+vmCvar_t	lm_chatProtectionTime;
 
 vmCvar_t	lm_centerPrintTime;
 vmCvar_t	lm_motd;
@@ -323,6 +327,10 @@ static cvarTable_t		gameCvarTable[] = {
 
 	//[Attano] - cVars.
 	{ &lm_tagProtection, "lm_tagProtection", "", CVAR_ARCHIVE, 0, qfalse },
+	{ &lm_tagProtectionTime, "lm_tagProtectionTime", "30", CVAR_ARCHIVE, 0, qfalse },
+
+	{ &lm_chatProtection, "lm_chatProtection", "1", CVAR_ARCHIVE, 0, qfalse },
+	{ &lm_chatProtectionTime, "lm_chatProtectionTime", "5", CVAR_ARCHIVE, 0, qfalse },
 
 	{ &lm_centerPrintTime, "lm_centerPrintTime", "10", CVAR_ARCHIVE, 0, qfalse },
 	{ &lm_motd, "lm_motd", "^3>> ^7Welcome to LibertyMod ^3<<\n^7We hope you^3'^7ll enjoy your stay^3!", CVAR_ARCHIVE, 0, qfalse },

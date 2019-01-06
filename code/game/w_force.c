@@ -605,33 +605,43 @@ void WP_SpawnInitForcePowers( gentity_t *ent )
 
 int ForcePowerUsableOn(gentity_t *attacker, gentity_t *other, forcePowers_t forcePower)
 {
-	if (other && other->client && other->client->ps.usingATST)
+	//[Attano] - Exceptions for whether or not we can use force on a target.
+	mvclientSession_t *mvSessAttk  = &mv_clientSessions[attacker - g_entities];
+	mvclientSession_t *mvSessOther = &mv_clientSessions[other - g_entities];
+
+	if (other && other->client)
 	{
-		return 0;
+		if (other->client->ps.usingATST || mvSessOther->common.chatProtection[0] && !other->client->ps.duelInProgress || BG_HasYsalamiri(g_gametype.integer, &other->client->ps))
+			return 0;
 	}
 
-	if (other && other->client && BG_HasYsalamiri(g_gametype.integer, &other->client->ps))
+	if (attacker && attacker->client)
 	{
-		return 0;
-	}
+		if (!BG_CanUseFPNow(g_gametype.integer, &attacker->client->ps, level.time, forcePower))
+			return 0;
 
-	if (attacker && attacker->client && !BG_CanUseFPNow(g_gametype.integer, &attacker->client->ps, level.time, forcePower))
-	{
-		return 0;
-	}
-
-	//Dueling fighters cannot use force powers on others, with the exception of force push when locked with each other
-	if (attacker && attacker->client && attacker->client->ps.duelInProgress)
-	{
-		return 0;
-	}
-
-	if (other && other->client && other->client->ps.duelInProgress)
-	{
-		return 0;
+		if (other && other->client)
+		{
+			if (attacker->client->ps.duelInProgress && other->client->ps.duelInProgress)
+			{
+				if (other->client->ps.duelIndex == attacker->s.number && other->s.number == attacker->client->ps.duelIndex)
+				{
+					return 1;
+				}
+				else
+				{
+					return 0;
+				}
+			}
+			else if (!other->client->ps.duelInProgress && attacker->client->ps.duelInProgress || other->client->ps.duelInProgress && !attacker->client->ps.duelInProgress)
+			{
+				return 0;
+			}
+		}
 	}
 
 	return 1;
+	//[/Attano]
 }
 
 qboolean WP_ForcePowerAvailable( gentity_t *self, forcePowers_t forcePower )

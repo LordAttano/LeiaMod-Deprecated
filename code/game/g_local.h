@@ -332,6 +332,8 @@ typedef struct {
 typedef struct {
 	int			tagProtection[2]; // Level.time, seconds.
 
+	int			chatProtection[2]; // Status, timer.
+
 	int			centerPrintTimer[2]; // Level.time, seconds.
 	char		centerPrintMessage[MAX_STRING_CHARS];
 } lmCommon_t;
@@ -1114,6 +1116,10 @@ extern	vmCvar_t	g_submodelWorkaround;
 
 //[Attano] - cVars.
 extern	vmCvar_t	lm_tagProtection;
+extern	vmCvar_t	lm_tagProtectionTime;
+
+extern	vmCvar_t	lm_chatProtection;
+extern	vmCvar_t	lm_chatProtectionTime;
 
 extern	vmCvar_t	lm_centerPrintTime;
 extern	vmCvar_t	lm_motd;

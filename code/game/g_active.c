@@ -675,6 +675,7 @@ Actions that happen once a second
 */
 void ClientTimerActions( gentity_t *ent, int msec ) {
 	gclient_t	*client;
+	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
 
 	client = ent->client;
 	client->timeResidual += msec;
@@ -692,6 +693,33 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 		if ( client->ps.stats[STAT_ARMOR] > client->ps.stats[STAT_MAX_HEALTH] ) {
 			client->ps.stats[STAT_ARMOR]--;
 		}
+
+		//[Attano] - Chat protect
+		if (lm_chatProtection.integer && (client->ps.eFlags & EF_TALK))
+		{
+			// If we are chatting or have the console open ...
+			if (!mvSess->common.chatProtection[1])
+			{
+				mvSess->common.chatProtection[0] = 0;
+				mvSess->common.chatProtection[1] = lm_chatProtectionTime.integer;
+			}
+			else if (mvSess->common.chatProtection[1])
+			{
+				mvSess->common.chatProtection[0] = 1;
+				mvSess->common.chatProtection[1] = 1;
+			}
+			else
+			{
+				mvSess->common.chatProtection[1] -= 1;
+			}
+		}
+		else
+		{
+			// No longer chatting, remove chat protection.
+			mvSess->common.chatProtection[0] = 0;
+			mvSess->common.chatProtection[1] = lm_chatProtectionTime.integer;
+		}
+		//[/Attano]
 	}
 }
 
@@ -1628,7 +1656,15 @@ void ClientThink_real( gentity_t *ent ) {
 	// Did we kick someone in our pmove sequence?
 	if (client->ps.forceKickFlip)
 	{
-		gentity_t *faceKicked = &g_entities[client->ps.forceKickFlip-1];
+		gentity_t *faceKicked	  = &g_entities[client->ps.forceKickFlip-1];
+		mvclientSession_t *mvSessKicked = &mv_clientSessions[faceKicked - g_entities];
+
+		//[Attano] - Prevent kicks if ...
+		if (((mvSessKicked->common.chatProtection[0]) && !faceKicked->client->ps.duelInProgress))
+		{
+			faceKicked = NULL;
+		}
+		//[/Attano]
 
 		if (faceKicked && faceKicked->client && (!OnSameTeam(ent, faceKicked) || g_friendlyFire.integer) &&
 			(!faceKicked->client->ps.duelInProgress || faceKicked->client->ps.duelIndex == ent->s.number) &&
