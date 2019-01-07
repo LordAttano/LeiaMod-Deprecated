@@ -1125,6 +1125,8 @@ extern	vmCvar_t	lm_centerPrintTime;
 extern	vmCvar_t	lm_motd;
 
 extern	vmCvar_t	lm_forceImmunity;
+
+extern	vmCvar_t	lm_preventDuplicates;
 //[/Attano]
 
 void	trap_Printf( const char *fmt );

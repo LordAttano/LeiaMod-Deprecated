@@ -153,6 +153,8 @@ vmCvar_t	lm_centerPrintTime;
 vmCvar_t	lm_motd;
 
 vmCvar_t	lm_forceImmunity;
+
+vmCvar_t	lm_preventDuplicates;
 //[/Attano]
 
 int gDuelist1 = -1;
@@ -338,6 +340,8 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &lm_motd, "lm_motd", "^3>> ^7Welcome to LibertyMod ^3<<\n^7We hope you^3'^7ll enjoy your stay^3!", CVAR_ARCHIVE, 0, qfalse },
 
 	{ &lm_forceImmunity, "lm_forceImmunity", "0", CVAR_ARCHIVE, 0, qfalse },
+
+	{ &lm_preventDuplicates, "lm_preventDuplicates", "1", CVAR_ARCHIVE, 0, qfalse },
 	//[/Attano]
 };
 

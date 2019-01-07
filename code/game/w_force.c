@@ -611,8 +611,8 @@ int ForcePowerUsableOn(gentity_t *attacker, gentity_t *other, forcePowers_t forc
 
 	if (other && other->client)
 	{
-		if (other->client->ps.usingATST || mvSessOther->common.chatProtection[0] && !other->client->ps.duelInProgress || BG_HasYsalamiri(g_gametype.integer, &other->client->ps)
-			|| lm_forceImmunity.integer && !(other->client->ps.fd.forcePowersKnown & ~((1 << FP_LEVITATION) | (1 << FP_SABERATTACK) | (1 << FP_SABERDEFEND))))
+		if (other->client->ps.usingATST || mvSessOther->common.chatProtection[0] && !other->client->ps.duelInProgress || !BG_CanUseFPNow(g_gametype.integer, &other->client->ps, level.time, forcePower)
+			|| lm_forceImmunity.integer && !other->client->ps.duelInProgress && !(other->client->ps.fd.forcePowersKnown & ~((1 << FP_LEVITATION) | (1 << FP_SABERATTACK) | (1 << FP_SABERDEFEND))))
 			return 0;
 	}
 

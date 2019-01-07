@@ -10,6 +10,10 @@ static vec3_t	playerMaxs = {15, 15, DEFAULT_MAXS_2};
 
 forcedata_t Client_Force[MAX_CLIENTS];
 
+//[Attano] - New functions.
+int LM_DuplicateName(gentity_t *ent, char *clientName);
+//[/Attano]
+
 //[Attano] - External functions.
 extern char *LM_SanitizeString(char *destination, char *source, int destinationSize);
 //[/Attano]
@@ -903,14 +907,13 @@ static void ClientCleanName( gentity_t *ent, const char *in, char *out, int outS
 	//[Attano] - Name system.
 	char	 outbuf[MAX_STRING_CHARS];
 	char	 tempbuf[MAX_STRING_CHARS];
-	char	 shortbuf[MAX_NETNAME];
-	char	 tagbuf[MAX_NETNAME];
-	int		 i, count;
+	char	 multibuf[MAX_NETNAME];
+	int		 i, count, num;
 
 	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
 
 	memset(outbuf, 0, sizeof(outbuf));
-	memset(shortbuf, 0, sizeof(shortbuf));
+	memset(multibuf, 0, sizeof(multibuf));
 	//[/Attano]
 
 	//save room for trailing null byte
@@ -981,13 +984,14 @@ static void ClientCleanName( gentity_t *ent, const char *in, char *out, int outS
 	//[Attano] - Name system.
 	if (strlen(p) > MAX_MODNETNAME)
 	{
+		memset(multibuf, 0, sizeof(multibuf));
 		// Loop through the name to make sure the total name length, excluding those we reserve for duplicate names, does not exceed the maximum length with colours.
 		for (i = 0; i < MAX_MODNETNAME; i++)
 		{
-			shortbuf[i] = p[i];
+			multibuf[i] = p[i];
 		}
 
-		strcpy(p, shortbuf);
+		strcpy(p, multibuf);
 	}
 
 	// Loop through the name to make sure its length without colours is no longer than what we allow.
@@ -1006,14 +1010,16 @@ static void ClientCleanName( gentity_t *ent, const char *in, char *out, int outS
 			break;
 	}
 
-	//[Attano] - Tag protection. Seems to be something some servers use.
+	// Check for tag, if enabled.
 	if (!(ent->r.svFlags & SVF_BOT) && strlen(lm_tagProtection.string) >= 2)
 	{
+		memset(multibuf, 0, sizeof(multibuf));
+
 		// Always remember to wash your hands.
-		LM_SanitizeString(tagbuf, lm_tagProtection.string, sizeof(tagbuf));
+		LM_SanitizeString(multibuf, lm_tagProtection.string, sizeof(multibuf));
 
 		// Tag found!
-		if (strstr(tempbuf, tagbuf))
+		if (strstr(tempbuf, multibuf))
 		{
 			// No timer set at the moment, so we initiate a new one.
 			if (!mvSess->common.tagProtection[1])
@@ -1029,7 +1035,19 @@ static void ClientCleanName( gentity_t *ent, const char *in, char *out, int outS
 			mvSess->common.tagProtection[1] = 0;
 		}
 	}
-	//[/Attano]
+
+	if (lm_preventDuplicates.integer)
+	{
+		// Check for duplicate names.
+		num = LM_DuplicateName(ent, outbuf);
+
+		if (num)
+		{
+			memset(multibuf, 0, sizeof(multibuf));
+			strcpy(multibuf, va("%s%s[%s%i%s]", outbuf, LM_SYMBOL_COLOR, LM_TEXT_COLOR, num, LM_SYMBOL_COLOR));
+			Q_strncpyz(outbuf, multibuf, sizeof(outbuf));
+		}
+	}
 
 	if (*p == 0 || colorlessLen == 0) 
 	{
@@ -2453,4 +2471,42 @@ void ClientDisconnect( int clientNum ) {
 	G_ClearClientLog(clientNum);
 }
 
+//[Attano] - Duplicate names.
+int LM_DuplicateName(gentity_t *ent, char *clientName)
+{
+	gentity_t	*other;
+	int			i, j, num;
+	char		cleanEnt[MAX_NETNAME];
+	char		cleanOther[MAX_NETNAME];
+	char		newName[MAX_NETNAME];
 
+	Q_strncpyz(newName, clientName, sizeof(newName));
+
+	num = 0;
+	for (i = 0; i < MAX_CLIENTS; i++)
+	{
+		for (j = 0; j < MAX_CLIENTS; j++)
+		{
+			other = &g_entities[j];
+
+			LM_SanitizeString(cleanEnt, newName, sizeof(cleanEnt));
+
+			if (other && other->client && other->inuse && other->client->pers.connected == CON_CONNECTED)
+			{
+				LM_SanitizeString(cleanOther, other->client->pers.netname, sizeof(cleanOther));
+
+				if (other - g_entities != ent - g_entities)
+				{
+					if (!Q_stricmp(cleanOther, cleanEnt))
+					{
+						num++;
+						Q_strncpyz(newName, va("%s[%i]", clientName, num), sizeof(newName));
+					}
+				}
+			}
+		}
+	}
+
+	return num;
+}
+//[/Attano]

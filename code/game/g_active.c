@@ -700,24 +700,27 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 			// If we are chatting or have the console open ...
 			if (!mvSess->common.chatProtection[1])
 			{
+				// Assign timer.
 				mvSess->common.chatProtection[0] = 0;
 				mvSess->common.chatProtection[1] = lm_chatProtectionTime.integer;
 			}
-			else if (mvSess->common.chatProtection[1])
+			else if (mvSess->common.chatProtection[1] == 1)
 			{
+				// Enough time has passed, so we enable chat protection.
 				mvSess->common.chatProtection[0] = 1;
 				mvSess->common.chatProtection[1] = 1;
 			}
 			else
 			{
-				mvSess->common.chatProtection[1] -= 1;
+				// Count down the seconds.
+				mvSess->common.chatProtection[1]--;
 			}
 		}
 		else
 		{
 			// No longer chatting, remove chat protection.
 			mvSess->common.chatProtection[0] = 0;
-			mvSess->common.chatProtection[1] = lm_chatProtectionTime.integer;
+			mvSess->common.chatProtection[1] = 0;
 		}
 		//[/Attano]
 	}
