@@ -18,7 +18,9 @@
 #define LM_SEPARATOR	"|"
 
 #define LM_GAMEVERSION	"LibertyMod"
-#define	GAMEVERSION		LM_SYMBOL_COLOR LM_START_SYMBOL " " LM_TEXT_COLOR LM_GAMEVERSION " " LM_SYMBOL_COLOR LM_END_SYMBOL
+#define GAMEVERSION		LM_SYMBOL_COLOR LM_START_SYMBOL " " LM_TEXT_COLOR LM_GAMEVERSION " " LM_SYMBOL_COLOR LM_END_SYMBOL
+
+#define LM_MAINTAINERS	LM_TEXT_COLOR "Attano" LM_SYMBOL_COLOR " & " LM_TEXT_COLOR "Flendo"
 //[/Attano]
 
 //[Attano] - Name system.
@@ -342,6 +344,14 @@ typedef struct {
 typedef struct {
 	int			loggedas; // Which admin level you are currently logged in as. Subject to change as there is no login system as of yet.
 } lmPlayer_t;
+
+// Struct for anything related to map modifications and entities.
+typedef struct {
+	vec3_t		defOrigin; // Default origin of item.
+	qboolean    alreadySpawned; // Mark as spawned before.
+} lmEntities_t;
+
+extern lmEntities_t lmEntity[MAX_GENTITIES];
 //[/Attano]
 
 // JK2MV
@@ -353,7 +363,12 @@ typedef struct {
 	lmPlayer_t	player;
 } mvclientSession_t;
 
-//
+//[Attano] - Function declarations.
+char *LM_SanitizeString( char *destination, char *source, int destinationSize );
+void LM_StringEscape(char *out, char *in, int outSize);
+void LM_CPHandler(gentity_t *ent, char *message);
+void LM_ResetItemPos( gentity_t *ent );
+//[/Attano]
 
 #define	MAX_VOTE_COUNT		3
 
@@ -615,6 +630,13 @@ void Touch_Item (gentity_t *ent, gentity_t *other, trace_t *trace);
 void ClearRegisteredItems( void );
 void RegisterItem( gitem_t *item );
 void SaveRegisteredItems( void );
+
+//[Attano] - Items.
+#define	RESPAWN_ARMOR		20
+#define	RESPAWN_HEALTH		30
+#define	RESPAWN_AMMO		40
+#define	RESPAWN_HOLDABLE	60
+//[/Attano]
 
 //
 // g_utils.c
@@ -1125,6 +1147,7 @@ extern	vmCvar_t	lm_centerPrintTime;
 extern	vmCvar_t	lm_motd;
 
 extern	vmCvar_t	lm_forceImmunity;
+extern	vmCvar_t	lm_itemThrow;
 
 extern	vmCvar_t	lm_preventDuplicates;
 //[/Attano]

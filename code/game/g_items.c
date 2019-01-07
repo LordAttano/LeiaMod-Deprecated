@@ -15,12 +15,7 @@
   movers and respawn apropriately.
 */
 
-
-#define	RESPAWN_ARMOR		20
 #define	RESPAWN_TEAM_WEAPON	30
-#define	RESPAWN_HEALTH		30
-#define	RESPAWN_AMMO		40
-#define	RESPAWN_HOLDABLE	60
 #define	RESPAWN_MEGAHEALTH	120
 #define	RESPAWN_POWERUP		120
 
@@ -1333,6 +1328,10 @@ void RespawnItem( gentity_t *ent ) {
 			;
 	}
 
+	//[Attano] - Item throwing.
+	LM_ResetItemPos(ent);
+	//[/Attano]
+
 	ent->r.contents = CONTENTS_TRIGGER;
 	//ent->s.eFlags &= ~EF_NODRAW;
 	ent->s.eFlags &= ~(EF_NODRAW | EF_ITEMPLACEHOLDER);
@@ -1882,6 +1881,14 @@ void FinishSpawningItem( gentity_t *ent ) {
 	}
 	*/
 
+	//[Attano] - Item throwing.
+	if (!lmEntity[ent - g_entities].alreadySpawned)
+	{
+		lmEntity[ent - g_entities].alreadySpawned = qtrue;
+		VectorCopy(tr.endpos, lmEntity[ent - g_entities].defOrigin);
+	}
+	//[/Attano]
+
 	trap_LinkEntity (ent);
 }
 
@@ -2027,6 +2034,11 @@ void G_SpawnItem (gentity_t *ent, gitem_t *item) {
 	if ( G_ItemDisabled(item) )
 		return;
 
+	//[Attano] - Item throwing.
+	if (lmEntity[ent - g_entities].alreadySpawned)
+		VectorCopy(lmEntity[ent - g_entities].defOrigin, ent->s.origin);
+	//[/Attano]
+
 	ent->item = item;
 	// some movers spawn on the second frame, so delay item
 	// spawns until the third frame so they can ride trains
@@ -2162,3 +2174,18 @@ void G_RunItem( gentity_t *ent ) {
 	G_BounceItem( ent, &tr );
 }
 
+//[Attano] - Reset item position.
+void LM_ResetItemPos( gentity_t *ent )
+{
+	// Reset position.
+	VectorCopy(lmEntity[ent - g_entities].defOrigin, ent->s.origin);
+	VectorCopy(lmEntity[ent - g_entities].defOrigin, ent->s.pos.trBase);
+	VectorCopy(lmEntity[ent - g_entities].defOrigin, ent->s.apos.trBase);
+	VectorCopy(lmEntity[ent - g_entities].defOrigin, ent->r.currentOrigin);
+
+	// Reset flags.
+	ent->s.pos.trType  = TR_STATIONARY;
+	ent->s.apos.trType = TR_STATIONARY;
+	ent->s.eFlags	  &= ~(EF_BOUNCE_HALF);
+}
+//[/Attano]

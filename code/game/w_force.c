@@ -2605,6 +2605,70 @@ qboolean G_InGetUpAnim(playerState_t *ps)
 	return qfalse;
 }
 
+//[Attano] - Calculate respawn time for item throwing.
+int LM_adjustRespawnTime( gentity_t *ent )
+{
+	float respawnTime;
+
+	// Get respawntime based on giType.
+	if (ent->item->giType == IT_ARMOR)
+	{
+		respawnTime = RESPAWN_ARMOR;
+	}
+	else if (ent->item->giType == IT_HOLDABLE)
+	{
+		respawnTime = RESPAWN_HOLDABLE;
+	}
+	else if (ent->item->giType == IT_HEALTH)
+	{
+		respawnTime = RESPAWN_HEALTH;
+	}
+	else if (ent->item->giType == IT_AMMO)
+	{
+		respawnTime = RESPAWN_AMMO;
+	}
+
+	// Adaption disabled, no wait time, and no random set either ...
+	if (!g_adaptRespawn.integer && !ent->wait && !ent->random)
+	{
+		return((int)respawnTime);
+	}
+	else
+	{
+		// Scale respawn time based on the current amount of playing clients.
+		if (level.numPlayingClients > 4)
+		{
+			if (level.numPlayingClients > 32)
+			{
+				respawnTime *= 0.25;
+			}
+			else if (level.numPlayingClients > 12)
+			{
+				respawnTime *= 20.0 / (float)(level.numPlayingClients + 8);
+			}
+			else
+			{
+				respawnTime *= 8.0 / (float)(level.numPlayingClients + 4);
+			}
+		}
+
+		// If wait is set ...
+		if (ent->wait)
+			respawnTime = ent->wait;
+
+		// If random is set ...
+		if (ent->random)
+			respawnTime += crandom() * ent->random;
+
+		// Never go below 1!
+		if (respawnTime < 1.0)
+			respawnTime = 1.0;
+
+		return ((int)respawnTime);
+	}
+}
+//[/Attano]
+
 extern void Touch_Button(gentity_t *ent, gentity_t *other, trace_t *trace );
 void ForceThrow( gentity_t *self, qboolean pull )
 {
@@ -3246,6 +3310,45 @@ void ForceThrow( gentity_t *self, qboolean pull )
 				Touch_Button( push_list[x], self, NULL );
 				continue;
 			}
+			//[Attano] - Item throwing, if enabled.
+			else if (push_list[x]->s.eType == ET_ITEM && lm_itemThrow.integer)
+			{
+				// Determine whether or not it was a pull or push.
+				float throwscale = pull ? -650.0f : 650.0f;
+
+				// Only allow certain items to be affected. Easier to whitelist than blacklist.
+				switch (push_list[x]->item->giType)
+				{
+					case IT_AMMO:
+					case IT_ARMOR:
+					case IT_HEALTH:
+					case IT_HOLDABLE:
+						break;
+					default:
+						continue;
+				}
+
+				// Set respawntime for if the item is not picked up.
+				push_list[x]->nextthink		= level.time + LM_adjustRespawnTime(push_list[x]) * 1000;
+				push_list[x]->think			= RespawnItem;
+
+				// This isn't flying. This is falling, with style.
+				push_list[x]->s.pos.trType	= TR_GRAVITY;
+				push_list[x]->s.apos.trType = TR_GRAVITY;
+
+				VectorScale(forward, throwscale, push_list[x]->s.pos.trDelta);
+				VectorScale(forward, throwscale, push_list[x]->s.apos.trDelta);
+
+				push_list[x]->s.pos.trTime	= level.time;
+				push_list[x]->s.apos.trTime = level.time;
+
+				VectorCopy(push_list[x]->r.currentOrigin, push_list[x]->s.pos.trBase);
+				VectorCopy(push_list[x]->r.currentOrigin, push_list[x]->s.apos.trBase);
+
+				// Bounce!
+				push_list[x]->s.eFlags |= EF_BOUNCE_HALF;
+			}
+			//[/Attano]
 		}
 	}
 

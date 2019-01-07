@@ -14,10 +14,6 @@ forcedata_t Client_Force[MAX_CLIENTS];
 int LM_DuplicateName(gentity_t *ent, char *clientName);
 //[/Attano]
 
-//[Attano] - External functions.
-extern char *LM_SanitizeString(char *destination, char *source, int destinationSize);
-//[/Attano]
-
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) initial
 potential spawning position for deathmatch games.
 The first time a player enters the game, they will be at an 'initial' spot.
@@ -1809,7 +1805,7 @@ void ClientBegin( int clientNum, qboolean allowTeamReset ) {
 		if (g_gametype.integer != GT_TOURNAMENT)
 		{
 			LM_CPHandler(ent, lm_motd.string);
-			trap_SendServerCommand(clientNum, va("print \"%s\n%sMaintained by Attano and Flendo%s.\n\"", GAMEVERSION, LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+			trap_SendServerCommand(clientNum, va("print \"%s\n%sMaintained by %s%s.\n\"", GAMEVERSION, LM_TEXT_COLOR, LM_MAINTAINERS, LM_SYMBOL_COLOR));
 		}
 		//[/Attano]
 
