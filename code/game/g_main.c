@@ -342,7 +342,7 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &lm_chatProtectionTime, "lm_chatProtectionTime", "5", CVAR_ARCHIVE, 0, qfalse },
 
 	{ &lm_centerPrintTime, "lm_centerPrintTime", "10", CVAR_ARCHIVE, 0, qfalse },
-	{ &lm_motd, "lm_motd", "^3>> ^7Welcome to LibertyMod ^3<<\n^7We hope you^3'^7ll enjoy your stay^3!", CVAR_ARCHIVE, 0, qfalse },
+	{ &lm_motd, "lm_motd", "^3>> ^7Welcome to LeiaMod ^3<<\n^7We hope you^3'^7ll enjoy your stay^3!", CVAR_ARCHIVE, 0, qfalse },
 
 	{ &lm_forceImmunity, "lm_forceImmunity", "0", CVAR_ARCHIVE, 0, qfalse },
 	{ &lm_itemThrow, "lm_itemThrow", "1", CVAR_ARCHIVE, 0, qfalse },

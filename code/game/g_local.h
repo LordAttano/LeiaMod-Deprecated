@@ -17,10 +17,10 @@
 #define LM_END_SYMBOL	"<<"
 #define LM_SEPARATOR	"|"
 
-#define LM_GAMEVERSION	"LibertyMod"
+#define LM_GAMEVERSION	"LeiaMod"
 #define GAMEVERSION		LM_SYMBOL_COLOR LM_START_SYMBOL " " LM_TEXT_COLOR LM_GAMEVERSION " " LM_SYMBOL_COLOR LM_END_SYMBOL
 
-#define LM_MAINTAINERS	LM_TEXT_COLOR "Attano" LM_SYMBOL_COLOR " & " LM_TEXT_COLOR "Flendo"
+#define LM_MAINTAINERS	"Attano"
 //[/Attano]
 
 //[Attano] - Name system.
