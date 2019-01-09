@@ -2471,7 +2471,7 @@ void ClientDisconnect( int clientNum ) {
 int LM_DuplicateName(gentity_t *ent, char *clientName)
 {
 	gentity_t	*other;
-	int			i, j, num;
+	int			i, num;
 	char		cleanEnt[MAX_NETNAME];
 	char		cleanOther[MAX_NETNAME];
 	char		newName[MAX_NETNAME];
@@ -2481,23 +2481,20 @@ int LM_DuplicateName(gentity_t *ent, char *clientName)
 	num = 0;
 	for (i = 0; i < MAX_CLIENTS; i++)
 	{
-		for (j = 0; j < MAX_CLIENTS; j++)
+		other = &g_entities[i];
+
+		LM_SanitizeString(cleanEnt, newName, sizeof(cleanEnt));
+
+		if (other && other->client && other->inuse && other->client->pers.connected == CON_CONNECTED)
 		{
-			other = &g_entities[j];
+			LM_SanitizeString(cleanOther, other->client->pers.netname, sizeof(cleanOther));
 
-			LM_SanitizeString(cleanEnt, newName, sizeof(cleanEnt));
-
-			if (other && other->client && other->inuse && other->client->pers.connected == CON_CONNECTED)
+			if (other - g_entities != ent - g_entities)
 			{
-				LM_SanitizeString(cleanOther, other->client->pers.netname, sizeof(cleanOther));
-
-				if (other - g_entities != ent - g_entities)
+				if (!Q_stricmp(cleanOther, cleanEnt))
 				{
-					if (!Q_stricmp(cleanOther, cleanEnt))
-					{
-						num++;
-						Q_strncpyz(newName, va("%s[%i]", clientName, num), sizeof(newName));
-					}
+					num++;
+					Q_strncpyz(newName, va("%s[%i]", clientName, num), sizeof(newName));
 				}
 			}
 		}
