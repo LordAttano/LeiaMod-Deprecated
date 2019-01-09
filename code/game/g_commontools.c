@@ -67,28 +67,28 @@ void LM_CPHandler(gentity_t *ent, char *message)
 	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
 
 	// Only allow one centerprint at a time.
-	if (level.time > mvSess->common.centerPrintTimer[0] && !mvSess->common.centerPrintTimer[1])
+	if (level.time > mvSess->player.common.centerPrintTimer[0] && !mvSess->player.common.centerPrintTimer[1])
 	{
-		memset(mvSess->common.centerPrintMessage, 0, sizeof(mvSess->common.centerPrintMessage));
-		mvSess->common.centerPrintTimer[0] = level.time + 1000;
-		mvSess->common.centerPrintTimer[1] = (lm_centerPrintTime.integer - 2);
+		memset(mvSess->player.common.centerPrintMessage, 0, sizeof(mvSess->player.common.centerPrintMessage));
+		mvSess->player.common.centerPrintTimer[0] = level.time + 1000;
+		mvSess->player.common.centerPrintTimer[1] = (lm_centerPrintTime.integer - 2);
 
-		if (mvSess->common.centerPrintTimer[1] < 0)
+		if (mvSess->player.common.centerPrintTimer[1] < 0)
 		{
-			mvSess->common.centerPrintTimer[1] = 0;
+			mvSess->player.common.centerPrintTimer[1] = 0;
 		}
 
-		Q_strncpyz(mvSess->common.centerPrintMessage, message, sizeof(mvSess->common.centerPrintMessage));
+		Q_strncpyz(mvSess->player.common.centerPrintMessage, message, sizeof(mvSess->player.common.centerPrintMessage));
 	}
-	else if (mvSess->common.centerPrintTimer[0] < level.time && mvSess->common.centerPrintTimer[1])
+	else if (mvSess->player.common.centerPrintTimer[0] < level.time && mvSess->player.common.centerPrintTimer[1])
 	{
-		mvSess->common.centerPrintTimer[0]  = level.time + 1000;
-		mvSess->common.centerPrintTimer[1] -= 1;
+		mvSess->player.common.centerPrintTimer[0]  = level.time + 1000;
+		mvSess->player.common.centerPrintTimer[1] -= 1;
 	}
 
-	if (strlen(mvSess->common.centerPrintMessage))
+	if (strlen(mvSess->player.common.centerPrintMessage))
 	{
-		LM_StringEscape(outbuf, mvSess->common.centerPrintMessage, sizeof(outbuf));
+		LM_StringEscape(outbuf, mvSess->player.common.centerPrintMessage, sizeof(outbuf));
 		trap_SendServerCommand(ent - g_entities, va("cp \"%s\"", outbuf));
 	}
 }

@@ -698,29 +698,29 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 		if (lm_chatProtection.integer && (client->ps.eFlags & EF_TALK))
 		{
 			// If we are chatting or have the console open ...
-			if (!mvSess->common.chatProtection[1])
+			if (!mvSess->player.common.chatProtection[1])
 			{
 				// Assign timer.
-				mvSess->common.chatProtection[0] = 0;
-				mvSess->common.chatProtection[1] = lm_chatProtectionTime.integer;
+				mvSess->player.common.chatProtection[0] = 0;
+				mvSess->player.common.chatProtection[1] = lm_chatProtectionTime.integer;
 			}
-			else if (mvSess->common.chatProtection[1] == 1)
+			else if (mvSess->player.common.chatProtection[1] == 1)
 			{
 				// Enough time has passed, so we enable chat protection.
-				mvSess->common.chatProtection[0] = 1;
-				mvSess->common.chatProtection[1] = 1;
+				mvSess->player.common.chatProtection[0] = 1;
+				mvSess->player.common.chatProtection[1] = 1;
 			}
 			else
 			{
 				// Count down the seconds.
-				mvSess->common.chatProtection[1]--;
+				mvSess->player.common.chatProtection[1]--;
 			}
 		}
 		else
 		{
 			// No longer chatting, remove chat protection.
-			mvSess->common.chatProtection[0] = 0;
-			mvSess->common.chatProtection[1] = 0;
+			mvSess->player.common.chatProtection[0] = 0;
+			mvSess->player.common.chatProtection[1] = 0;
 		}
 		//[/Attano]
 	}
@@ -1090,16 +1090,16 @@ void ClientThink_real( gentity_t *ent ) {
 	}
 	
 	//[Attano] - Tag protection and centerprints.
-	if (!mvSess->player.loggedas && mvSess->common.tagProtection[1] && (strlen(lm_tagProtection.string) >= 2))
+	if (!mvSess->player.account.loggedas && mvSess->player.common.tagProtection[1] && (strlen(lm_tagProtection.string) >= 2))
 	{
-		if (mvSess->common.tagProtection[0] <= level.time)
+		if (mvSess->player.common.tagProtection[0] <= level.time)
 		{
-			mvSess->common.tagProtection[0] = level.time + 1000;
-			mvSess->common.tagProtection[1] -= 1;
+			mvSess->player.common.tagProtection[0] = level.time + 1000;
+			mvSess->player.common.tagProtection[1] -= 1;
 
-			trap_SendServerCommand(ent - g_entities, va("cp \"%s%s %sTag protection %s%s\n%sYour name contain a protected tag%s!\n%sPlease login or change your name%s!\n\n%sTime remaining%s:\n%s%i ^7seconds%s.\n\"", LM_SYMBOL_COLOR, LM_START_SYMBOL, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_END_SYMBOL, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_SYMBOL_COLOR, mvSess->common.tagProtection[1], LM_SYMBOL_COLOR));
+			trap_SendServerCommand(ent - g_entities, va("cp \"%s%s %sTag protection %s%s\n%sYour name contain a protected tag%s!\n%sPlease login or change your name%s!\n\n%sTime remaining%s:\n%s%i ^7seconds%s.\n\"", LM_SYMBOL_COLOR, LM_START_SYMBOL, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_END_SYMBOL, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_SYMBOL_COLOR, mvSess->player.common.tagProtection[1], LM_SYMBOL_COLOR));
 
-			if (!mvSess->common.tagProtection[1])
+			if (!mvSess->player.common.tagProtection[1])
 			{
 				trap_DropClient(ent - g_entities, va("%shas been kicked by the tag protection system%s.", LM_TEXT_COLOR, LM_SYMBOL_COLOR));
 			}
@@ -1107,9 +1107,9 @@ void ClientThink_real( gentity_t *ent ) {
 	}
 	else
 	{
-		if (mvSess->common.centerPrintTimer[0] < level.time && mvSess->common.centerPrintTimer[1])
+		if (mvSess->player.common.centerPrintTimer[0] < level.time && mvSess->player.common.centerPrintTimer[1])
 		{
-			LM_CPHandler(ent, mvSess->common.centerPrintMessage);
+			LM_CPHandler(ent, mvSess->player.common.centerPrintMessage);
 		}
 	}
 	//[/Attano]
@@ -1153,7 +1153,7 @@ void ClientThink_real( gentity_t *ent ) {
 			client->ps.pm_type = client->ps.forceGripChangeMovetype;
 		}
 		//[Attano] - New PM conditions.
-		else if (!mvSess->player.loggedas && mvSess->common.tagProtection[1] && strlen(lm_tagProtection.string) >= 2)
+		else if (!mvSess->player.account.loggedas && mvSess->player.common.tagProtection[1] && strlen(lm_tagProtection.string) >= 2)
 		{
 			client->ps.pm_type = PM_FREEZE;
 		}
@@ -1663,7 +1663,7 @@ void ClientThink_real( gentity_t *ent ) {
 		mvclientSession_t *mvSessKicked = &mv_clientSessions[faceKicked - g_entities];
 
 		//[Attano] - Prevent kicks if ...
-		if (((mvSessKicked->common.chatProtection[0]) && !faceKicked->client->ps.duelInProgress))
+		if (((mvSessKicked->player.common.chatProtection[0]) && !faceKicked->client->ps.duelInProgress))
 			faceKicked = NULL;
 		//[/Attano]
 

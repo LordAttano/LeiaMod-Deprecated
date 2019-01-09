@@ -1018,17 +1018,17 @@ static void ClientCleanName( gentity_t *ent, const char *in, char *out, int outS
 		if (strstr(tempbuf, multibuf))
 		{
 			// No timer set at the moment, so we initiate a new one.
-			if (!mvSess->common.tagProtection[1])
+			if (!mvSess->player.common.tagProtection[1])
 			{
-				mvSess->common.tagProtection[0] = level.time + 1000;
-				mvSess->common.tagProtection[1] = lm_tagProtectionTime.integer;
+				mvSess->player.common.tagProtection[0] = level.time + 1000;
+				mvSess->player.common.tagProtection[1] = lm_tagProtectionTime.integer;
 			}
 		}
 		else
 		{
 			// No tag found on name change.
-			mvSess->common.tagProtection[0] = 0;
-			mvSess->common.tagProtection[1] = 0;
+			mvSess->player.common.tagProtection[0] = 0;
+			mvSess->player.common.tagProtection[1] = 0;
 		}
 	}
 

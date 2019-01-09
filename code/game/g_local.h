@@ -340,9 +340,15 @@ typedef struct {
 	char		centerPrintMessage[MAX_STRING_CHARS];
 } lmCommon_t;
 
-// Player struct for anything related to them, such as stat tracking, logins, etc.
+// Account struct for everything related to them, such as admin level, username, etc.
 typedef struct {
 	int			loggedas; // Which admin level you are currently logged in as. Subject to change as there is no login system as of yet.
+} lmAccount_t;
+
+// Player struct to serve as a hub for every struct related to them.
+typedef struct {
+	lmCommon_t	common;
+	lmAccount_t	account;
 } lmPlayer_t;
 
 // Struct for anything related to map modifications and entities.
@@ -359,7 +365,6 @@ typedef struct {
 	int			clientIP[4];
 	qboolean	localClient;
 
-	lmCommon_t	common;
 	lmPlayer_t	player;
 } mvclientSession_t;
 
