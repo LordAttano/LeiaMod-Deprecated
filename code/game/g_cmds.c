@@ -961,12 +961,35 @@ Cmd_FollowCycle_f
 void Cmd_FollowCycle_f( gentity_t *ent, int dir ) {
 	int		clientnum;
 	int		original;
+
+	trace_t tr;
+	vec3_t org, forward, fwdOrg;
 	
 	if ( ent->client->sess.sessionTeam != TEAM_SPECTATOR && ent->client->switchTeamTime > level.time )
 	{
 		trap_SendServerCommand( ent-g_entities, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "NOSWITCH")) );
 		return;
 	}
+
+	//[Attano] - Follow client in crosshair.
+	if (ent->client->sess.spectatorState == SPECTATOR_FREE)
+	{
+		AngleVectors(ent->client->ps.viewangles, forward, NULL, NULL);
+
+		VectorCopy(ent->client->ps.origin, org);
+		org[2] += ent->client->ps.viewheight;
+		VectorMA(org, 8192, forward, fwdOrg);
+
+		trap_Trace(&tr, org, NULL, NULL, fwdOrg, ent->s.number, MASK_PLAYERSOLID);
+
+		if (tr.fraction != 1 && tr.entityNum < MAX_CLIENTS) 
+		{
+			ent->client->sess.spectatorClient = tr.entityNum;
+			ent->client->sess.spectatorState  = SPECTATOR_FOLLOW;
+			return;
+		}
+	}
+	//[/Attano]
 
 	// if they are playing a tournement game, count as a loss
 	if ( (g_gametype.integer == GT_TOURNAMENT )
