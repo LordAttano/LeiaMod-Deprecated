@@ -264,14 +264,14 @@ void LM_DuelRead( gentity_t *ent, char *mode )
 
 	if (!f)
 	{
-		G_Printf("%[%Error%s] %sSpecified duel not found%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
+		G_Printf("%s[%sError%s] %sSpecified duel not found%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
 		BG_TempFree(DUEL_MAX_LEN);
 		return;
 	}
 
 	if (len >= DUEL_MAX_LEN)
 	{
-		G_Printf("%[%Error%s] %sDuel file exceeds maximum length%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
+		G_Printf("%s[%sError%s] %sDuel file exceeds maximum length%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
 		BG_TempFree(DUEL_MAX_LEN);
 		return;
 	}
@@ -328,7 +328,7 @@ void LM_DuelRead( gentity_t *ent, char *mode )
 	}
 	else
 	{
-		G_Printf("%[%Error%s] %sDuel file %s'%s%s' %scontains no Settings group%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, mode, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
+		G_Printf("%s[%sError%s] %sDuel file %s'%s%s' %scontains no Settings group%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, mode, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
 	}
 
 	// Force presets.
@@ -347,7 +347,7 @@ void LM_DuelRead( gentity_t *ent, char *mode )
 		}
 		else
 		{
-			G_Printf("%[%Error%s] %sDuel file %s'%s%s' %scontains no Force group%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, mode, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
+			G_Printf("%s[%sError%s] %sDuel file %s'%s%s' %scontains no Force group%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, mode, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
 		}
 	}
 

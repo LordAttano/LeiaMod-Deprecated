@@ -3065,29 +3065,6 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		return;
 	}
 
-	/*if (targ && targ->client && targ->client->ps.duelInProgress)
-	{
-		if (attacker && attacker->client && attacker->s.number != targ->client->ps.duelIndex)
-		{
-			return;
-		}
-		else if (attacker && attacker->client && mod != MOD_SABER)
-		{
-			return;
-		}
-	}
-	if (attacker && attacker->client && attacker->client->ps.duelInProgress)
-	{
-		if (targ && targ->client && targ->s.number != attacker->client->ps.duelIndex)
-		{
-			return;
-		}
-		else if (targ && targ->client && mod != MOD_SABER)
-		{
-			return;
-		}
-	}*/
-
 	//[Attano] - Except for a few cases, prevent damage if ...
 	if (mod != MOD_CRUSH && mod != MOD_TELEFRAG && mod != MOD_SUICIDE && mod != MOD_TRIGGER_HURT && mod != MOD_WATER && mod != MOD_SLIME && mod != MOD_LAVA 
 		&& ((targ && targ->client && targ->inuse) && (attacker && attacker->client && attacker->inuse)))
@@ -3104,7 +3081,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	// Duels.
 	if (targ && targ->client && targ->client->ps.duelInProgress)
 	{
-		if (attacker - g_entities != targ->client->ps.duelIndex || targ - g_entities != attacker->client->ps.duelIndex)
+		if (attacker && attacker->client && !(attacker->client->ps.duelInProgress && attacker->client->ps.duelIndex == targ - g_entities))
 			return;
 
 		if (mod == MOD_FALLING && !mvSessTarg->player.duel.falldmg || mod == MOD_MELEE && !mvSessTarg->player.duel.kickdmg)
