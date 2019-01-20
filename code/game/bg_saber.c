@@ -2,6 +2,10 @@
 #include "bg_public.h"
 #include "bg_local.h"
 
+#ifdef JK2_GAME
+extern int LM_DuelBG(int clientNum, int number);
+#endif
+
 int PM_irand_timesync(int val1, int val2)
 {
 	int i;
@@ -24,13 +28,12 @@ void BG_ForcePowerDrain( playerState_t *ps, forcePowers_t forcePower, int overri
 	//take away the power
 	int	drain = overrideAmt;
 
-	/*
-	if (ps->powerups[PW_FORCE_BOON])
-	{
+	#ifdef JK2_GAME
+	//[Attano] - Infinite force in duels.
+	if (ps->duelInProgress && LM_DuelBG(ps->clientNum, 2))
 		return;
-	}
-	*/
-	//No longer grant infinite force with boon.
+	//[/Attano]
+	#endif
 
 	if ( !drain )
 	{
@@ -1423,11 +1426,24 @@ void PM_WeaponLightsaber(void)
 
 		if (pm->ps->weaponTime < 1 && ((pm->cmd.buttons & BUTTON_ALT_ATTACK) || (pm->cmd.buttons & BUTTON_ATTACK)))
 		{
+			#ifdef JK2_GAME
+			//[Attano] - Toggle allowed in duels.
+			if (!(pm->ps->duelInProgress && !LM_DuelBG(pm->ps->clientNum, 1)))
+			{
+				if (pm->ps->duelTime < pm->cmd.serverTime)
+				{
+					pm->ps->saberHolstered = qfalse;
+					PM_AddEvent(EV_SABER_UNHOLSTER);
+				}
+			}
+			//[/Attano]
+			#else
 			if (pm->ps->duelTime < pm->cmd.serverTime)
 			{
 				pm->ps->saberHolstered = qfalse;
 				PM_AddEvent(EV_SABER_UNHOLSTER);
 			}
+			#endif
 		}
 
 		if ( pm->ps->weaponTime > 0 )

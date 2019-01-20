@@ -1,0 +1,33 @@
+// Restricted Match
+Settings
+{
+	name "^3R^7estricted ^3M^7atch"
+	toggle 1
+	force 1
+	forcepreset 1
+	health 100
+	shield 100
+	bacta 0
+	pickups 0
+	distance 0
+	fraglimit 0
+	timelimit 10
+	bestof 0
+	infiniteforce 0
+	forceregentime 200
+	dualblade 0
+	knockback 1
+	kickdmg 0
+	falldmg 1
+	ffrules 1
+	saberlock 0
+	gravity 800
+	speed 250
+	trainingwheels 0
+}
+
+Force
+{
+	FP_SABERATTACK 3
+	FP_SABERDEFEND 3
+}

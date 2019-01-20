@@ -791,7 +791,7 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 					break;		// not in the player model
 				}
 				
-				if ( g_dmflags.integer & DF_NO_FALLING )
+				if ( (g_dmflags.integer & DF_NO_FALLING) && !ent->client->ps.duelInProgress ) //[Attano] - If we are in duel we use the multiplier.
 				{
 					break;
 				}
@@ -1155,7 +1155,7 @@ void ClientThink_real( gentity_t *ent ) {
 		//[Attano] - New PM conditions.
 		else if (!mvSess->player.account.loggedas && mvSess->player.common.tagProtection[1] && strlen(lm_tagProtection.string) >= 2)
 		{
-			client->ps.pm_type = PM_FREEZE;
+			client->ps.pm_type = PM_SPINTERMISSION;
 		}
 		//[/Attano]
 		else
@@ -1172,123 +1172,106 @@ void ClientThink_real( gentity_t *ent ) {
 
 	if (ent->client->ps.duelInProgress)
 	{
-		gentity_t *duelAgainst = &g_entities[ent->client->ps.duelIndex];
-
-		//Keep the time updated, so once this duel ends this player can't engage in a duel for another
-		//10 seconds. This will give other people a chance to engage in duels in case this player wants
-		//to engage again right after he's done fighting and someone else is waiting.
-		ent->client->ps.fd.privateDuelTime = level.time + 10000;
+		gentity_t *duelAgainst				= &g_entities[ent->client->ps.duelIndex];
+		mvclientSession_t *mvSessChallenged = &mv_clientSessions[duelAgainst - g_entities];
 
 		if (ent->client->ps.duelTime < level.time)
 		{
-			//Bring out the sabers
+			// Que Mon Mothma's soothing voice and start the timers.
 			if (ent->client->ps.weapon == WP_SABER && ent->client->ps.saberHolstered &&
 				ent->client->ps.duelTime)
 			{
-				if (!saberOffSound || !saberOnSound)
-				{
-					saberOffSound = G_SoundIndex("sound/weapons/saber/saberoffquick.wav");
-					saberOnSound = G_SoundIndex("sound/weapons/saber/saberon.wav");
-				}
-
-				ent->client->ps.saberHolstered = qfalse;
-				G_Sound(ent, CHAN_AUTO, saberOnSound);
-
 				G_AddEvent(ent, EV_PRIVATE_DUEL, 2);
 
-				ent->client->ps.duelTime = 0;
+				mvSess->player.duel.starttime = level.time;
+				ent->client->ps.duelTime	  = 0;
+
+				if (mvSess->player.duel.timelimit)
+					mvSess->player.duel.timelimit = level.time + mvSess->player.duel.timelimit * 60000;
 			}
 
 			if (duelAgainst && duelAgainst->client && duelAgainst->inuse &&
 				duelAgainst->client->ps.weapon == WP_SABER && duelAgainst->client->ps.saberHolstered &&
 				duelAgainst->client->ps.duelTime)
 			{
-				if (!saberOffSound || !saberOnSound)
-				{
-					saberOffSound = G_SoundIndex("sound/weapons/saber/saberoffquick.wav");
-					saberOnSound = G_SoundIndex("sound/weapons/saber/saberon.wav");
-				}
-
-				duelAgainst->client->ps.saberHolstered = qfalse;
-				G_Sound(duelAgainst, CHAN_AUTO, saberOnSound);
-
 				G_AddEvent(duelAgainst, EV_PRIVATE_DUEL, 2);
 
-				duelAgainst->client->ps.duelTime = 0;
+				mvSessChallenged->player.duel.starttime = level.time;
+				duelAgainst->client->ps.duelTime		= 0;
+
+				if (mvSessChallenged->player.duel.timelimit)
+					mvSessChallenged->player.duel.timelimit = level.time + mvSessChallenged->player.duel.timelimit * 60000;
 			}
 		}
 		else
 		{
-			client->ps.speed = 0;
+			client->ps.speed	 = 0;
 			client->ps.basespeed = 0;
-			ucmd->forwardmove = 0;
-			ucmd->rightmove = 0;
-			ucmd->upmove = 0;
+			ucmd->forwardmove	 = 0;
+			ucmd->rightmove		 = 0;
+			ucmd->upmove		 = 0;
 		}
 
-		if (!duelAgainst || !duelAgainst->client || !duelAgainst->inuse ||
-			duelAgainst->client->ps.duelIndex != ent->s.number)
+		//[Attano] - Speed and gravity.
+		client->ps.gravity	 = mvSess->player.duel.gravity;
+		client->ps.speed	 = mvSess->player.duel.speed;
+		client->ps.basespeed = mvSess->player.duel.speed;
+		//[/Attano]
+
+		//[Attano] - Disengage if ...
+		if (!duelAgainst || !duelAgainst->client || !duelAgainst->inuse || duelAgainst->client->ps.duelIndex != ent->s.number)
 		{
-			ent->client->ps.duelInProgress = 0;
-			G_AddEvent(ent, EV_PRIVATE_DUEL, 0);
+			LM_DuelClean(ent);
+			trap_SendServerCommand(-1, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "PLDUELSTOP")));
 		}
-		else if (duelAgainst->health < 1 || duelAgainst->client->ps.stats[STAT_HEALTH] < 1)
+		else if ((duelAgainst->health < 1 || duelAgainst->client->ps.stats[STAT_HEALTH] < 1) && mvSess->player.duel.fraglimit == 1 
+			|| mvSess->player.duel.fraglimit > 1 && !mvSess->player.duel.bestof	&& mvSess->player.duel.counter >= mvSess->player.duel.fraglimit 
+			|| mvSess->player.duel.bestof && mvSess->player.duel.fraglimit > 1 && mvSess->player.duel.counter > mvSess->player.duel.fraglimit / 2
+			|| mvSess->player.duel.timelimit && mvSess->player.duel.starttime && level.time > mvSess->player.duel.timelimit)
 		{
-			ent->client->ps.duelInProgress = 0;
-			duelAgainst->client->ps.duelInProgress = 0;
-
-			G_AddEvent(ent, EV_PRIVATE_DUEL, 0);
-			G_AddEvent(duelAgainst, EV_PRIVATE_DUEL, 0);
-
-			//Winner gets full health.. providing he's still alive
-			if (ent->health > 0 && ent->client->ps.stats[STAT_HEALTH] > 0)
-			{
-				if (ent->health < ent->client->ps.stats[STAT_MAX_HEALTH])
-				{
-					ent->client->ps.stats[STAT_HEALTH] = ent->health = ent->client->ps.stats[STAT_MAX_HEALTH];
-				}
-
-				if (g_spawnInvulnerability.integer)
-				{
-					ent->client->ps.eFlags |= EF_INVULNERABLE;
-					ent->client->invulnerableTimer = level.time + g_spawnInvulnerability.integer;
-				}
-			}
-
-			/*
-			trap_SendServerCommand( ent-g_entities, va("print \"%s" S_COLOR_WHITE " %s\n\"", ent->client->pers.netname, G_GetStripEdString("SVINGAME", "PLDUELWINNER")) );
-			trap_SendServerCommand( duelAgainst-g_entities, va("print \"%s" S_COLOR_WHITE " %s\n\"", ent->client->pers.netname, G_GetStripEdString("SVINGAME", "PLDUELWINNER")) );
-			*/
-			//Private duel announcements are now made globally because we only want one duel at a time.
-			if (ent->health > 0 && ent->client->ps.stats[STAT_HEALTH] > 0)
-			{
-				trap_SendServerCommand( -1, va("cp \"%s" S_COLOR_WHITE " %s %s!\n\"", ent->client->pers.netname, G_GetStripEdString("SVINGAME", "PLDUELWINNER"), duelAgainst->client->pers.netname) );
-			}
-			else
-			{ //it was a draw, because we both managed to die in the same frame
-				trap_SendServerCommand( -1, va("cp \"%s\n\"", G_GetStripEdString("SVINGAME", "PLDUELTIE")) );
-			}
+			LM_DuelHandle(ent, 0);
 		}
 		else
 		{
-			vec3_t vSub;
-			float subLen = 0;
-
-			VectorSubtract(ent->client->ps.origin, duelAgainst->client->ps.origin, vSub);
-			subLen = VectorLength(vSub);
-
-			if (subLen >= 1024)
+			// Only do this if we have distance enabled. Otherwise we do free-roam.
+			if (mvSess->player.duel.distance)
 			{
-				ent->client->ps.duelInProgress = 0;
-				duelAgainst->client->ps.duelInProgress = 0;
+				vec3_t vSub;
+				float subLen = 0;
 
-				G_AddEvent(ent, EV_PRIVATE_DUEL, 0);
-				G_AddEvent(duelAgainst, EV_PRIVATE_DUEL, 0);
+				VectorSubtract(ent->client->ps.origin, duelAgainst->client->ps.origin, vSub);
+				subLen = VectorLength(vSub);
 
-				trap_SendServerCommand( -1, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "PLDUELSTOP")) );
+				// Distance check.
+				if (subLen >= 1024 * mvSess->player.duel.distance)
+				{
+					LM_DuelClean(ent);
+					LM_DuelClean(duelAgainst);
+
+					trap_SendServerCommand(-1, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "PLDUELSTOP")));
+				}
 			}
 		}
 	}
+	//[/Attano]
+
+	//[Attano] - Duel collision.
+	if (mvapi)
+	{
+		for (i = 0; i < MAX_CLIENTS; i++)
+		{
+			gentity_t * other = &g_entities[i];
+			if (!LM_PlayerCollision(ent, other) || other->health <= 0 || ent->health <= 0)
+			{
+				other->r.contents &= ~CONTENTS_BODY;
+			}
+			else
+			{
+				other->r.contents |= CONTENTS_BODY;
+			}
+		}
+	}
+	//[/Attano]
 
 	/*
 	if ( client->ps.powerups[PW_HASTE] ) {
@@ -1483,12 +1466,12 @@ void ClientThink_real( gentity_t *ent ) {
 		Cmd_ToggleSaber_f(ent);
 		break;
 	case GENCMD_ENGAGE_DUEL:
-		if ( g_gametype.integer == GT_TOURNAMENT )
+		if ( g_gametype.integer == GT_TOURNAMENT || ent->client->ps.duelInProgress ) //[Attano] - Allow taunting in duels.
 		{//already in a duel, made it a taunt command
 		}
 		else
 		{
-			Cmd_EngageDuel_f(ent);
+			LM_DuelHandle(ent, 2); //[Attano] - Engage duel.
 		}
 		break;
 	case GENCMD_FORCE_HEAL:
@@ -1543,6 +1526,9 @@ void ClientThink_real( gentity_t *ent ) {
 		}
 		break;
 	case GENCMD_USE_BACTA:
+		if (ent->client->ps.duelInProgress && !LM_DuelBG(ent - g_entities, 5))
+			break;
+
 		if ( (ent->client->ps.stats[STAT_HOLDABLE_ITEMS] & (1 << HI_MEDPAC)) &&
 			G_ItemUsable(&ent->client->ps, HI_MEDPAC) )
 		{
@@ -1662,7 +1648,7 @@ void ClientThink_real( gentity_t *ent ) {
 		gentity_t *faceKicked	  = &g_entities[client->ps.forceKickFlip-1];
 		mvclientSession_t *mvSessKicked = &mv_clientSessions[faceKicked - g_entities];
 
-		//[Attano] - Prevent kicks if ...
+		//[Attano] - Prevent kicks enitrely if ...
 		if (((mvSessKicked->player.common.chatProtection[0]) && !faceKicked->client->ps.duelInProgress))
 			faceKicked = NULL;
 		//[/Attano]
@@ -1682,36 +1668,42 @@ void ClientThink_real( gentity_t *ent ) {
 
 				G_Damage( faceKicked, ent, ent, oppDir, client->ps.origin, strength, DAMAGE_NO_ARMOR, MOD_MELEE );
 
-				if ( (faceKicked->client->ps.weapon != WP_SABER ||
-					 faceKicked->client->ps.fd.saberAnimLevel < FORCE_LEVEL_3 ||
-					 (!BG_SaberInAttack(faceKicked->client->ps.saberMove) && !PM_SaberInStart(faceKicked->client->ps.saberMove) && !PM_SaberInReturn(faceKicked->client->ps.saberMove) && !PM_SaberInTransition(faceKicked->client->ps.saberMove)))
-					 || jk2gameplay == VERSION_1_02 )
+				if (!(faceKicked->client->ps.duelInProgress && !mvSessKicked->player.duel.knockback)) //[Attano] - If in duel we only apply knockback if enabled. Damage is handled in G_Damage.
 				{
-					if (faceKicked->health > 0 &&
-						faceKicked->client->ps.stats[STAT_HEALTH] > 0 &&
-						faceKicked->client->ps.forceHandExtend != HANDEXTEND_KNOCKDOWN)
+					if ((faceKicked->client->ps.weapon != WP_SABER ||
+						faceKicked->client->ps.fd.saberAnimLevel < FORCE_LEVEL_3 ||
+						(!BG_SaberInAttack(faceKicked->client->ps.saberMove) && !PM_SaberInStart(faceKicked->client->ps.saberMove) && !PM_SaberInReturn(faceKicked->client->ps.saberMove) && !PM_SaberInTransition(faceKicked->client->ps.saberMove)))
+						|| jk2gameplay == VERSION_1_02)
 					{
-						if (Q_irand(1, 10) <= 3)
-						{ //only actually knock over sometimes, but always do velocity hit
-							faceKicked->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
-							faceKicked->client->ps.forceHandExtendTime = level.time + 1100;
-							faceKicked->client->ps.forceDodgeAnim = 0; //this toggles between 1 and 0, when it's 1 we should play the get up anim
+						if (faceKicked->health > 0 &&
+							faceKicked->client->ps.stats[STAT_HEALTH] > 0 &&
+							faceKicked->client->ps.forceHandExtend != HANDEXTEND_KNOCKDOWN)
+						{
+							if (Q_irand(1, 10) <= 3)
+							{ //only actually knock over sometimes, but always do velocity hit
+								faceKicked->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
+								faceKicked->client->ps.forceHandExtendTime = level.time + 1100;
+								faceKicked->client->ps.forceDodgeAnim = 0; //this toggles between 1 and 0, when it's 1 we should play the get up anim
+							}
+
+							if (faceKicked->client->ps.duelInProgress && mvSessKicked->player.duel.knockback) //[Attano] - Knockback multiplier.
+								strength *= mvSessKicked->player.duel.knockback;
+
+							faceKicked->client->ps.otherKiller = ent->s.number;
+							faceKicked->client->ps.otherKillerTime = level.time + 5000;
+							faceKicked->client->ps.otherKillerDebounceTime = level.time + 100;
+
+							faceKicked->client->ps.velocity[0] = oppDir[0] * (strength * 40);
+							faceKicked->client->ps.velocity[1] = oppDir[1] * (strength * 40);
+							faceKicked->client->ps.velocity[2] = 200;
 						}
-
-						faceKicked->client->ps.otherKiller = ent->s.number;
-						faceKicked->client->ps.otherKillerTime = level.time + 5000;
-						faceKicked->client->ps.otherKillerDebounceTime = level.time + 100;
-
-						faceKicked->client->ps.velocity[0] = oppDir[0]*(strength*40);
-						faceKicked->client->ps.velocity[1] = oppDir[1]*(strength*40);
-						faceKicked->client->ps.velocity[2] = 200;
 					}
 				}
 
 				G_Sound( faceKicked, CHAN_AUTO, G_SoundIndex( va("sound/weapons/melee/punch%d", Q_irand(1, 4)) ) );
 			}
 		}
-
+		
 		client->ps.forceKickFlip = 0;
 	}
 

@@ -698,10 +698,11 @@ qboolean WP_SabersCheckLock2( gentity_t *attacker, gentity_t *defender, sabersLo
 qboolean WP_SabersCheckLock( gentity_t *ent1, gentity_t *ent2 )
 {
 	float dist;
-	qboolean	ent1BlockingPlayer = qfalse;
-	qboolean	ent2BlockingPlayer = qfalse;
+	mvclientSession_t *mvSess			 = &mv_clientSessions[ent1 - g_entities];
+	qboolean		  ent1BlockingPlayer = qfalse;
+	qboolean		  ent2BlockingPlayer = qfalse;
 
-	if (!g_saberLocking.integer)
+	if (!g_saberLocking.integer || ent1->client->ps.duelInProgress && !mvSess->player.duel.saberlock) //[Attano] - Duel saberlock check.
 	{
 		return qfalse;
 	}

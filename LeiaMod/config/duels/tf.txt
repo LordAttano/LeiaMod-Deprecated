@@ -1,0 +1,37 @@
+// Throw Fight
+Settings
+{
+	name "^3T^7hrow ^3F^7ight"
+	toggle 1
+	force 1
+	forcepreset 1
+	health 100
+	shield 100
+	bacta 0
+	pickups 0
+	distance 1
+	fraglimit 1
+	timelimit 0
+	bestof 0
+	infiniteforce 0
+	forceregentime 0
+	dualblade 0
+	knockback 1
+	kickdmg 1
+	falldmg 1
+	ffrules 0
+	saberlock 0
+	gravity 800
+	speed 250
+	trainingwheels 0
+}
+
+Force
+{
+	FP_LEVITATION 3
+	FP_PUSH 3
+	FP_PULL 3
+	FP_SABERATTACK 3
+	FP_SABERDEFEND 3
+	FP_SABERTHROW 3
+}

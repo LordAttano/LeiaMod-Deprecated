@@ -1870,6 +1870,7 @@ void ClientSpawn(gentity_t *ent) {
 	void		*ghoul2save;
 	int		saveSaberNum = ENTITYNUM_NONE;
 	int		wDisable = 0;
+	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
 
 	index = ent - g_entities;
 	client = ent->client;
@@ -1986,8 +1987,6 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.saberEntityNum = saveSaberNum;
 
 	client->ps.fd = savedForce;
-
-	client->ps.duelIndex = ENTITYNUM_NONE;
 
 	client->pers = saved;
 	client->sess = savedSess;
@@ -2342,6 +2341,18 @@ void ClientSpawn(gentity_t *ent) {
 		trap_LinkEntity( ent );
 	}
 
+	//[Attano] - Initialize settings upon respawn if there is a duel limit.
+	if (mvSess->player.duel.engaged)
+	{
+		LM_DuelInit(ent);
+	}
+	else
+	{
+		client->ps.duelIndex = ENTITYNUM_NONE;
+		mvSess->player.duel.index = ENTITYNUM_NONE;
+	}
+	//[/Attano]
+
 	if (g_spawnInvulnerability.integer)
 	{
 		ent->client->ps.eFlags |= EF_INVULNERABLE;
@@ -2419,6 +2430,16 @@ void ClientDisconnect( int clientNum ) {
 		}
 	}
 
+	//[Attano] - Clear snapshotignore on disconnect.
+	if (mvapi)
+	{
+		for (i = 0; i < MAX_CLIENTS; i++)
+		{
+			mv_entities[i].snapshotIgnore[ent - g_entities] = 0;
+		}
+	}
+	//[/Attano]
+
 	// send effect if they were completely connected
 	if ( ent->client->pers.connected == CON_CONNECTED 
 		&& ent->client->sess.sessionTeam != TEAM_SPECTATOR ) {
@@ -2471,7 +2492,7 @@ void ClientDisconnect( int clientNum ) {
 int LM_DuplicateName(gentity_t *ent, char *clientName)
 {
 	gentity_t	*other;
-	int			i, num;
+	int			i, j, num;
 	char		cleanEnt[MAX_NETNAME];
 	char		cleanOther[MAX_NETNAME];
 	char		newName[MAX_NETNAME];
@@ -2481,20 +2502,23 @@ int LM_DuplicateName(gentity_t *ent, char *clientName)
 	num = 0;
 	for (i = 0; i < MAX_CLIENTS; i++)
 	{
-		other = &g_entities[i];
-
-		LM_SanitizeString(cleanEnt, newName, sizeof(cleanEnt));
-
-		if (other && other->client && other->inuse && other->client->pers.connected == CON_CONNECTED)
+		for (j = 0; j < MAX_CLIENTS; j++)
 		{
-			LM_SanitizeString(cleanOther, other->client->pers.netname, sizeof(cleanOther));
+			other = &g_entities[j];
 
-			if (other - g_entities != ent - g_entities)
+			LM_SanitizeString(cleanEnt, newName, sizeof(cleanEnt));
+
+			if (other && other->client && other->inuse && other->client->pers.connected == CON_CONNECTED)
 			{
-				if (!Q_stricmp(cleanOther, cleanEnt))
+				LM_SanitizeString(cleanOther, other->client->pers.netname, sizeof(cleanOther));
+
+				if (other - g_entities != ent - g_entities)
 				{
-					num++;
-					Q_strncpyz(newName, va("%s[%i]", clientName, num), sizeof(newName));
+					if (!Q_stricmp(cleanOther, cleanEnt))
+					{
+						num++;
+						Q_strncpyz(newName, va("%s[%i]", clientName, num), sizeof(newName));
+					}
 				}
 			}
 		}

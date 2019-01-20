@@ -2081,6 +2081,13 @@ extern int saberOnSound;
 
 void Cmd_ToggleSaber_f(gentity_t *ent)
 {
+	//[Attano] - Toggle in duels.
+	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
+
+	if (ent->client->ps.duelInProgress && !LM_DuelBG(ent - g_entities, 1))
+		return;
+	//[/Attano]
+
 	if (!saberOffSound || !saberOnSound)
 	{
 		saberOffSound = G_SoundIndex("sound/weapons/saber/saberoffquick.wav");
@@ -2187,158 +2194,6 @@ void Cmd_SaberAttackCycle_f(gentity_t *ent)
 	else
 	{ //can't set it now or we might cause unexpected chaining, so queue it
 		ent->client->saberCycleQueue = selectLevel;
-	}
-}
-
-qboolean G_OtherPlayersDueling(void)
-{
-	int i = 0;
-	gentity_t *ent;
-
-	while (i < MAX_CLIENTS)
-	{
-		ent = &g_entities[i];
-
-		if (ent && ent->inuse && ent->client && ent->client->ps.duelInProgress)
-		{
-			return qtrue;
-		}
-		i++;
-	}
-
-	return qfalse;
-}
-
-void Cmd_EngageDuel_f(gentity_t *ent)
-{
-	trace_t tr;
-	vec3_t forward, fwdOrg;
-
-	if (!g_privateDuel.integer)
-	{
-		return;
-	}
-
-	if (g_gametype.integer == GT_TOURNAMENT)
-	{ //rather pointless in this mode..
-		trap_SendServerCommand( ent-g_entities, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "NODUEL_GAMETYPE")) );
-		return;
-	}
-
-	if (g_gametype.integer >= GT_TEAM)
-	{ //no private dueling in team modes
-		trap_SendServerCommand( ent-g_entities, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "NODUEL_GAMETYPE")) );
-		return;
-	}
-
-	if (ent->client->ps.duelTime >= level.time)
-	{
-		return;
-	}
-
-	if (ent->client->ps.weapon != WP_SABER)
-	{
-		return;
-	}
-
-	/*
-	if (!ent->client->ps.saberHolstered)
-	{ //must have saber holstered at the start of the duel
-		return;
-	}
-	*/
-	//NOTE: No longer doing this..
-
-	if (ent->client->ps.saberInFlight)
-	{
-		return;
-	}
-
-	if (ent->client->ps.duelInProgress)
-	{
-		return;
-	}
-
-	//New: Don't let a player duel if he just did and hasn't waited 10 seconds yet (note: If someone challenges him, his duel timer will reset so he can accept)
-	if (ent->client->ps.fd.privateDuelTime > level.time)
-	{
-		trap_SendServerCommand( ent-g_entities, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "CANTDUEL_JUSTDID")) );
-		return;
-	}
-
-	if (G_OtherPlayersDueling())
-	{
-		trap_SendServerCommand( ent-g_entities, va("print \"%s\n\"", G_GetStripEdString("SVINGAME", "CANTDUEL_BUSY")) );
-		return;
-	}
-
-	AngleVectors( ent->client->ps.viewangles, forward, NULL, NULL );
-
-	fwdOrg[0] = ent->client->ps.origin[0] + forward[0]*256;
-	fwdOrg[1] = ent->client->ps.origin[1] + forward[1]*256;
-	fwdOrg[2] = (ent->client->ps.origin[2]+ent->client->ps.viewheight) + forward[2]*256;
-
-	trap_Trace(&tr, ent->client->ps.origin, NULL, NULL, fwdOrg, ent->s.number, MASK_PLAYERSOLID);
-
-	if (tr.fraction != 1 && tr.entityNum < MAX_CLIENTS)
-	{
-		gentity_t *challenged = &g_entities[tr.entityNum];
-
-		if (!challenged || !challenged->client || !challenged->inuse ||
-			challenged->health < 1 || challenged->client->ps.stats[STAT_HEALTH] < 1 ||
-			challenged->client->ps.weapon != WP_SABER || challenged->client->ps.duelInProgress ||
-			challenged->client->ps.saberInFlight)
-		{
-			return;
-		}
-
-		if (g_gametype.integer >= GT_TEAM && OnSameTeam(ent, challenged))
-		{
-			return;
-		}
-
-		if (challenged->client->ps.duelIndex == ent->s.number && challenged->client->ps.duelTime >= level.time)
-		{
-			trap_SendServerCommand( /*challenged-g_entities*/-1, va("print \"%s" S_COLOR_WHITE " %s %s!\n\"", challenged->client->pers.netname, G_GetStripEdString("SVINGAME", "PLDUELACCEPT"), ent->client->pers.netname) );
-
-			ent->client->ps.duelInProgress = qtrue;
-			challenged->client->ps.duelInProgress = qtrue;
-
-			ent->client->ps.duelTime = level.time + 2000;
-			challenged->client->ps.duelTime = level.time + 2000;
-
-			G_AddEvent(ent, EV_PRIVATE_DUEL, 1);
-			G_AddEvent(challenged, EV_PRIVATE_DUEL, 1);
-
-			//Holster their sabers now, until the duel starts (then they'll get auto-turned on to look cool)
-
-			if (!ent->client->ps.saberHolstered)
-			{
-				G_Sound(ent, CHAN_AUTO, saberOffSound);
-				ent->client->ps.weaponTime = 400;
-				ent->client->ps.saberHolstered = qtrue;
-			}
-			if (!challenged->client->ps.saberHolstered)
-			{
-				G_Sound(challenged, CHAN_AUTO, saberOffSound);
-				challenged->client->ps.weaponTime = 400;
-				challenged->client->ps.saberHolstered = qtrue;
-			}
-		}
-		else
-		{
-			//Print the message that a player has been challenged in private, only announce the actual duel initiation in private
-			trap_SendServerCommand( challenged-g_entities, va("cp \"%s" S_COLOR_WHITE " %s\n\"", ent->client->pers.netname, G_GetStripEdString("SVINGAME", "PLDUELCHALLENGE")) );
-			trap_SendServerCommand( ent-g_entities, va("cp \"%s %s\n\"", G_GetStripEdString("SVINGAME", "PLDUELCHALLENGED"), challenged->client->pers.netname) );
-		}
-
-		challenged->client->ps.fd.privateDuelTime = 0; //reset the timer in case this player just got out of a duel. He should still be able to accept the challenge.
-
-		ent->client->ps.forceHandExtend = HANDEXTEND_DUELCHALLENGE;
-		ent->client->ps.forceHandExtendTime = level.time + 1000;
-
-		ent->client->ps.duelIndex = challenged->s.number;
-		ent->client->ps.duelTime = level.time + 5000;
 	}
 }
 
@@ -2454,12 +2309,16 @@ ClientCommand
 void ClientCommand( int clientNum ) {
 	gentity_t *ent;
 	char	cmd[MAX_TOKEN_CHARS];
+	mvclientSession_t *mvSess;
 
 	ent = g_entities + clientNum;
+	
+
 	if ( !ent->client || ent->client->pers.connected < CON_CONNECTED ) {
 		return;		// not fully in game yet
 	}
 
+	mvSess = &mv_clientSessions[clientNum];
 
 	trap_Argv( 0, cmd, sizeof( cmd ) );
 	
@@ -2623,48 +2482,57 @@ void ClientCommand( int clientNum ) {
 		return;
 	}
 
-	if (Q_stricmp (cmd, "give") == 0)
+	if (Q_stricmp(cmd, "give") == 0)
 	{
-		Cmd_Give_f (ent);
+		Cmd_Give_f(ent);
 	}
-	else if (Q_stricmp (cmd, "god") == 0)
-		Cmd_God_f (ent);
-	else if (Q_stricmp (cmd, "notarget") == 0)
-		Cmd_Notarget_f (ent);
-	else if (Q_stricmp (cmd, "noclip") == 0)
-		Cmd_Noclip_f (ent);
-	else if (Q_stricmp (cmd, "kill") == 0)
-		Cmd_Kill_f (ent);
-	else if (Q_stricmp (cmd, "teamtask") == 0)
-		Cmd_TeamTask_f (ent);
-	else if (Q_stricmp (cmd, "levelshot") == 0)
-		Cmd_LevelShot_f (ent);
-	else if (Q_stricmp (cmd, "follow") == 0)
-		Cmd_Follow_f (ent);
-	else if (Q_stricmp (cmd, "follownext") == 0)
-		Cmd_FollowCycle_f (ent, 1);
-	else if (Q_stricmp (cmd, "followprev") == 0)
-		Cmd_FollowCycle_f (ent, -1);
-	else if (Q_stricmp (cmd, "team") == 0)
-		Cmd_Team_f (ent);
-	else if (Q_stricmp (cmd, "forcechanged") == 0)
-		Cmd_ForceChanged_f (ent);
-	else if (Q_stricmp (cmd, "where") == 0)
-		Cmd_Where_f (ent);
-	else if (Q_stricmp (cmd, "callvote") == 0)
-		Cmd_CallVote_f (ent);
-	else if (Q_stricmp (cmd, "vote") == 0)
-		Cmd_Vote_f (ent);
-	else if (Q_stricmp (cmd, "callteamvote") == 0)
-		Cmd_CallTeamVote_f (ent);
-	else if (Q_stricmp (cmd, "teamvote") == 0)
-		Cmd_TeamVote_f (ent);
-	else if (Q_stricmp (cmd, "gc") == 0)
-		Cmd_GameCommand_f( ent );
-	else if (Q_stricmp (cmd, "setviewpos") == 0)
-		Cmd_SetViewpos_f( ent );
-	else if (Q_stricmp (cmd, "stats") == 0)
-		Cmd_Stats_f( ent );
+	else if (Q_stricmp(cmd, "god") == 0)
+		Cmd_God_f(ent);
+	else if (Q_stricmp(cmd, "notarget") == 0)
+		Cmd_Notarget_f(ent);
+	else if (Q_stricmp(cmd, "noclip") == 0)
+		Cmd_Noclip_f(ent);
+	else if (Q_stricmp(cmd, "kill") == 0)
+		Cmd_Kill_f(ent);
+	else if (Q_stricmp(cmd, "teamtask") == 0)
+		Cmd_TeamTask_f(ent);
+	else if (Q_stricmp(cmd, "levelshot") == 0)
+		Cmd_LevelShot_f(ent);
+	else if (Q_stricmp(cmd, "follow") == 0)
+		Cmd_Follow_f(ent);
+	else if (Q_stricmp(cmd, "follownext") == 0)
+		Cmd_FollowCycle_f(ent, 1);
+	else if (Q_stricmp(cmd, "followprev") == 0)
+		Cmd_FollowCycle_f(ent, -1);
+	else if (Q_stricmp(cmd, "team") == 0)
+		Cmd_Team_f(ent);
+	else if (Q_stricmp(cmd, "forcechanged") == 0)
+		Cmd_ForceChanged_f(ent);
+	else if (Q_stricmp(cmd, "where") == 0)
+		Cmd_Where_f(ent);
+	else if (Q_stricmp(cmd, "callvote") == 0)
+		Cmd_CallVote_f(ent);
+	else if (Q_stricmp(cmd, "vote") == 0)
+		Cmd_Vote_f(ent);
+	else if (Q_stricmp(cmd, "callteamvote") == 0)
+		Cmd_CallTeamVote_f(ent);
+	else if (Q_stricmp(cmd, "teamvote") == 0)
+		Cmd_TeamVote_f(ent);
+	else if (Q_stricmp(cmd, "gc") == 0)
+		Cmd_GameCommand_f(ent);
+	else if (Q_stricmp(cmd, "setviewpos") == 0)
+		Cmd_SetViewpos_f(ent);
+	else if (Q_stricmp(cmd, "stats") == 0)
+		Cmd_Stats_f(ent);
+	//[Attano] - New commands. FIXME: Write cleaner function for client commands.
+	else if (strstr(cmd, "engage_"))
+		LM_DuelHandle(ent, 1);
+	else if (!Q_stricmp(cmd, "matchstats"))
+		LM_DuelStats(ent);
+	else if (!Q_stricmp(cmd, "matchend"))
+		LM_DuelEnd(ent);
+	//[/Attano]
+		
 	/*
 	else if (Q_stricmp(cmd, "#mm") == 0 && CheatsOk( ent ))
 	{

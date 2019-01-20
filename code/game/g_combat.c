@@ -1798,6 +1798,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	char		*killerName, *obit;
 	qboolean	wasJediMaster = qfalse;
 
+	mvclientSession_t *mvSessSelf;
+	mvclientSession_t *mvSessOther;
+
 	if ( !self || !self->client ) return;
 
 	if ( self->client->ps.pm_type == PM_DEAD ) {
@@ -1807,6 +1810,8 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	if ( level.intermissiontime ) {
 		return;
 	}
+
+	mvSessSelf = &mv_clientSessions[self - g_entities];
 
 	if (g_slowmoDuelEnd.integer && g_gametype.integer == GT_TOURNAMENT && attacker && attacker->inuse && attacker->client)
 	{
@@ -1947,7 +1952,19 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 			}
 			else
 			{
-				AddScore( attacker, self->r.currentOrigin, -1 );
+				//[Attano] - Community agreed FF score rules.
+				if (mvSessSelf->player.duel.engaged && mvSessSelf->player.duel.ffrules)
+				{
+					mvSessOther = &mv_clientSessions[mvSessSelf->player.duel.index];
+					mvSessOther->player.duel.counter++;
+
+					AddScore(&g_entities[mvSessSelf->player.duel.index], self->r.currentOrigin, 1);
+				}
+				else
+				{
+					AddScore(attacker, self->r.currentOrigin, -1);
+				}
+				//[/Attano]
 			}
 			if (g_gametype.integer == GT_JEDIMASTER)
 			{
@@ -1985,6 +2002,13 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 			}
 			else
 			{
+				//[Attano] - Duel counter.
+				if (mvSessSelf->player.duel.engaged)
+				{
+					mvSessOther = &mv_clientSessions[attacker - g_entities];
+					mvSessOther->player.duel.counter++;
+				}
+				//[/Attano]
 				AddScore( attacker, self->r.currentOrigin, 1 );
 			}
 
@@ -3026,6 +3050,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	//[Attano] - New variables.
 	mvclientSession_t *mvSessTarg = &mv_clientSessions[targ - g_entities];
+	mvclientSession_t *mvSessAttk = &mv_clientSessions[attacker - g_entities];
 	//[/Attano]
 
 	if ( !targ ) return;
@@ -3040,7 +3065,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		return;
 	}
 
-	if (targ && targ->client && targ->client->ps.duelInProgress)
+	/*if (targ && targ->client && targ->client->ps.duelInProgress)
 	{
 		if (attacker && attacker->client && attacker->s.number != targ->client->ps.duelIndex)
 		{
@@ -3061,18 +3086,35 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		{
 			return;
 		}
-	}
+	}*/
 
 	//[Attano] - Except for a few cases, prevent damage if ...
 	if (mod != MOD_CRUSH && mod != MOD_TELEFRAG && mod != MOD_SUICIDE && mod != MOD_TRIGGER_HURT && mod != MOD_WATER && mod != MOD_SLIME && mod != MOD_LAVA 
 		&& ((targ && targ->client && targ->inuse) && (attacker && attacker->client && attacker->inuse)))
 	{
+		// Chat protection
 		if (mvSessTarg->player.common.chatProtection[0])
 		{
 			// Only block damage if we're not in a duel.
 			if ((mvSessTarg->player.common.chatProtection[0]) && !targ->client->ps.duelInProgress)
 				return;
 		}
+	}
+
+	// Duels.
+	if (targ && targ->client && targ->client->ps.duelInProgress)
+	{
+		if (attacker - g_entities != targ->client->ps.duelIndex || targ - g_entities != attacker->client->ps.duelIndex)
+			return;
+
+		if (mod == MOD_FALLING && !mvSessTarg->player.duel.falldmg || mod == MOD_MELEE && !mvSessTarg->player.duel.kickdmg)
+			return;
+		
+		if (mod == MOD_FALLING && mvSessTarg->player.duel.falldmg)
+			damage *= mvSessTarg->player.duel.falldmg;
+
+		if (mod == MOD_MELEE && mvSessTarg->player.duel.kickdmg)
+			damage *= mvSessTarg->player.duel.kickdmg;
 	}
 	//[/Attano]
 

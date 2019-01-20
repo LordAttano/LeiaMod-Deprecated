@@ -1332,6 +1332,11 @@ qboolean BG_CanUseFPNow(int gametype, playerState_t *ps, int time, forcePowers_t
 
 	if (ps->duelInProgress)
 	{
+		#ifdef JK2_GAME
+		if (LM_DuelBG(ps->clientNum, 3)) //[Attano] - Force in duels.
+			return qtrue;
+		#endif
+
 		if (power != FP_SABERATTACK && power != FP_SABERDEFEND && (jk2gameplay == VERSION_1_04 || power != FP_SABERTHROW) &&
 			power != FP_LEVITATION)
 		{
@@ -1666,7 +1671,11 @@ qboolean BG_CanItemBeGrabbed( int gametype, const entityState_t *ent, const play
 			return qfalse;
 		}
 		if ( ps->duelInProgress )
-		{ //no picking stuff up while in a duel, no matter what the type is
+		{
+			#ifdef JK2_GAME
+			if (!LM_DuelBG(ps->clientNum, 4)) //[Attano] - Pickups in duels.
+			#endif
+			//no picking stuff up while in a duel, no matter what the type is
 			return qfalse;
 		}
 	}

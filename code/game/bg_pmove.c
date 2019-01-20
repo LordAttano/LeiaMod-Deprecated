@@ -3203,6 +3203,9 @@ int PM_ItemUsable(playerState_t *ps, int forcedUse)
 
 	if (ps->duelInProgress && jk2gameplay == VERSION_1_04)
 	{ //not allowed to use holdables while in a private duel.
+		#ifdef JK2_GAME
+		if (!LM_DuelBG(ps->clientNum, 5)) //[Attano] - Items in duels.
+		#endif
 		return 0;
 	}
 

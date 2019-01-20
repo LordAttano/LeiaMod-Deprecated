@@ -1,0 +1,47 @@
+// Empowered Match
+Settings
+{
+	name "^3E^7mpowered ^3M^7atch"
+	toggle 1
+	force 1
+	forcepreset 1
+	health 100
+	shield 100
+	bacta 0
+	pickups 0
+	distance 0
+	fraglimit 10
+	timelimit 0
+	bestof 0
+	infiniteforce 1
+	forceregentime 0
+	dualblade 1
+	knockback 1
+	kickdmg 1
+	falldmg 1
+	ffrules 1
+	saberlock 0
+	gravity 800
+	speed 250
+	trainingwheels 0
+}
+
+Force
+{
+	FP_HEAL 3
+	FP_LEVITATION 3
+	FP_SPEED 3
+	FP_PUSH 3
+	FP_PULL 3
+	FP_TELEPATHY 3
+	FP_GRIP 3
+	FP_LIGHTNING 3
+	FP_RAGE 3
+	FP_PROTECT 3
+	FP_ABSORB 3
+	FP_DRAIN 3
+	FP_SEE 3
+	FP_SABERATTACK 3
+	FP_SABERDEFEND 3
+	FP_SABERTHROW 3
+}

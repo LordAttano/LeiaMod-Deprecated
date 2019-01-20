@@ -429,6 +429,23 @@ void hurt_use( gentity_t *self, gentity_t *other, gentity_t *activator ) {
 
 void hurt_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 	int		dflags;
+	mvclientSession_t *mvSessOther;
+	mvSessOther = &mv_clientSessions[other - g_entities];
+
+	//[Attano] - Trainingwheels.
+	if (mvSessOther->player.duel.trainingwheels)
+	{
+		gentity_t *opponent				  = &g_entities[other->client->ps.duelIndex];
+
+		other->client->ps.origin[0]		  = opponent->client->ps.origin[0] + (cos(opponent->client->ps.viewangles[YAW] * (M_PI * 2 / 360)) * 50);
+		other->client->ps.origin[1]		  = opponent->client->ps.origin[1] + (sin(opponent->client->ps.viewangles[YAW] * (M_PI * 2 / 360)) * 50);
+		other->client->ps.origin[2]		  = opponent->client->ps.origin[2];
+		other->client->ps.viewangles[YAW] = AngleNormalize360(opponent->client->ps.viewangles[YAW] + 180);
+
+		TeleportPlayer(other, other->client->ps.origin, other->client->ps.viewangles);
+		return;
+	}
+	//[/Attano]
 
 	if ( !other->takedamage ) {
 		return;

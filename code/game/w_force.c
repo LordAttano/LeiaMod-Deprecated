@@ -4548,6 +4548,7 @@ void WP_ForcePowersUpdate( gentity_t *self, usercmd_t *ucmd )
 	qboolean	usingForce = qfalse;
 	vec3_t		dmgdir;
 	int			i, holo, holoregen;
+	mvclientSession_t *mvSess;
 	int			prepower = 0;
 	//see if any force powers are running
 	if ( !self )
@@ -4559,6 +4560,8 @@ void WP_ForcePowersUpdate( gentity_t *self, usercmd_t *ucmd )
 	{
 		return;
 	}
+
+	mvSess = &mv_clientSessions[self - g_entities];
 
 	if (self->client->ps.pm_flags & PMF_FOLLOW)
 	{ //not a "real" game client, it's a spectator following someone
@@ -5072,7 +5075,14 @@ void WP_ForcePowersUpdate( gentity_t *self, usercmd_t *ucmd )
 				WP_ForcePowerRegenerate(self, holoregen);
 			}
 
-			self->client->ps.fd.forcePowerRegenDebounceTime = level.time + g_forceRegenTime.integer;
+			if (self->client->ps.duelInProgress)
+			{
+				self->client->ps.fd.forcePowerRegenDebounceTime = level.time + mvSess->player.duel.forceregentime; //[Attano] - Duel forceregentime.
+			}
+			else
+			{
+				self->client->ps.fd.forcePowerRegenDebounceTime = level.time + g_forceRegenTime.integer;
+			}
 		}
 	}
 

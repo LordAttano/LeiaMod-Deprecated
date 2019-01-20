@@ -332,29 +332,83 @@ typedef struct {
 //[Attano] - New sorted structs.
 // Common struct for general things, such as chat protection, tag protection, CP timers, etc.
 typedef struct {
-	int			tagProtection[2]; // Level.time, seconds.
+	int		tagProtection[2]; // Level.time, seconds.
 
-	int			chatProtection[2]; // Status, timer.
+	int		chatProtection[2]; // Status, timer.
 
-	int			centerPrintTimer[2]; // Level.time, seconds.
-	char		centerPrintMessage[MAX_STRING_CHARS];
+	int		centerPrintTimer[2]; // Level.time, seconds.
+	char	centerPrintMessage[MAX_STRING_CHARS];
 } lmCommon_t;
 
 // Account struct for everything related to them, such as admin level, username, etc.
 typedef struct {
-	int			loggedas; // Which admin level you are currently logged in as. Subject to change as there is no login system as of yet.
+	int		loggedas; // Which admin level you are currently logged in as. Subject to change as there is no login system as of yet.
 } lmAccount_t;
+
+// Duel struct to store the various duel settings we allow to be tweaked.
+typedef struct {
+	int		engaged; // Used to re-init duel settings at respawn.
+	int		starttime; // Start time of duel for use in time calculations.
+	int		index; // Index of our duel opponent to restore the playerstate on respawn if the limit is either 0 or higher than 1.
+
+	char	mode[MAX_STRING_CHARS]; // Store the mode for later use in checks.
+	char	name[MAX_STRING_CHARS]; // Name of the duel mode for use in messages.
+
+	int		toggle; // Sets whether or not we can toggle our saber.
+	int		force; // Force allowed or not?
+	int		forcepreset; // If force is allowed this will check if they should be assigned powers or can use their own.
+
+	int		health; // Amount of health at spawn.
+	int		shield; // Amount of shield at spawn.
+	int		bacta; // Bacta at spawn.
+
+	int		pickups; // Pickups enabled?
+
+	int		distance; // Multiplier for duel distance. 0 for free roam, 1 for normal, 2 for double, 3 for ...
+
+	int		fraglimit; // Fraglimit for "First to" and "Best of".
+	int		timelimit; // Timelimit for the duel.
+	int		bestof; // If 0 we do "First to" otherwise it is "Best of".
+	int		counter; // Score counter.
+
+	int		infforce; // Infinite force.
+	int		forceregentime; // Force regen time.
+
+	int		dualblade; // Dual blade or single blade.
+
+	int		knockback; // Knockback multiplier.
+	int		kickdmg; // Kick damage multiplier.
+	int		falldmg; // Fall damage multiplier.
+
+	int		ffrules; // Enable community agreed "FF rules".
+
+	int		saberlock; // Enable saberlocking.
+
+	int		gravity; // Is this too crazy? No, as we could play on a server with altered gravity, but want to duel with normal or vice versa.
+	int		speed; // How about this? Crazy yet? No, as we could play on a server with altered speed, but want to duel with normal or vice versa.
+
+	int		origHealth; // Pre-duel health value.
+	int		origShield; // Pre-duel shield value.
+
+	int		suicide; // Allow suicide in the duel?
+	int		trainingwheels; // Enable trainingwheels.
+
+	int		wantOut; // Do we want to exit a duel? Both have to agree.
+
+	int		knownpowers[NUM_FORCE_POWERS];
+} lmDuel_t;
 
 // Player struct to serve as a hub for every struct related to them.
 typedef struct {
 	lmCommon_t	common;
 	lmAccount_t	account;
+	lmDuel_t	duel;
 } lmPlayer_t;
 
 // Struct for anything related to map modifications and entities.
 typedef struct {
 	vec3_t		defOrigin; // Default origin of item.
-	qboolean    alreadySpawned; // Mark as spawned before.
+	qboolean	alreadySpawned; // Mark as spawned before.
 } lmEntities_t;
 
 extern lmEntities_t lmEntity[MAX_GENTITIES];
@@ -369,10 +423,25 @@ typedef struct {
 } mvclientSession_t;
 
 //[Attano] - Function declarations.
+// Common
 char *LM_SanitizeString( char *destination, char *source, int destinationSize );
-void LM_StringEscape(char *out, char *in, int outSize);
-void LM_CPHandler(gentity_t *ent, char *message);
+void LM_StringEscape( char *out, char *in, int outSize );
+void LM_CPHandler( gentity_t *ent, char *message );
+char *LM_GetValueGroup( char *buf, char *group, char *outbuf );
+char *LM_ParseInfo( char *buf, char *outbuf );
+qboolean LM_PlayerCollision( gentity_t *ent, gentity_t *other );
+
+// Entities.
 void LM_ResetItemPos( gentity_t *ent );
+
+// Duel system.
+void LM_DuelHandle( gentity_t *ent, int controller );
+void LM_DuelList( gentity_t *ent );
+void LM_DuelClean( gentity_t *ent );
+void LM_DuelInit( gentity_t *ent );
+int LM_DuelBG( int clientNum, int number );
+void LM_DuelStats( gentity_t *ent );
+void LM_DuelEnd( gentity_t *ent );
 //[/Attano]
 
 #define	MAX_VOTE_COUNT		3
@@ -603,7 +672,6 @@ void Cmd_FollowCycle_f( gentity_t *ent, int dir );
 void Cmd_SaberAttackCycle_f(gentity_t *ent);
 int G_ItemUsable(playerState_t *ps, int forcedUse);
 void Cmd_ToggleSaber_f(gentity_t *ent);
-void Cmd_EngageDuel_f(gentity_t *ent);
 
 gentity_t *G_GetDuelWinner(gclient_t *client);
 
