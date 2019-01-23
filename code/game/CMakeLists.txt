@@ -88,6 +88,7 @@ set(MVGAMESOURCES
 	"${SRCDir}/game/animMappingTable.c"
 	"${SRCDir}/game/g_commontools.c"
 	"${SRCDir}/game/g_duelsystem.c"
+	"${SRCDir}/game/g_commands.c"
 )
 
 set(MVGAMEASM

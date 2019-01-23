@@ -1804,7 +1804,7 @@ void ClientBegin( int clientNum, qboolean allowTeamReset ) {
 		//[Attano] - Greeting and MOTD.
 		if (g_gametype.integer != GT_TOURNAMENT)
 		{
-			LM_CPHandler(ent, lm_motd.string);
+			LM_Motd(ent);
 			trap_SendServerCommand(clientNum, va("print \"%s\n%sMaintained by %s%s.\n\"", GAMEVERSION, LM_TEXT_COLOR, LM_MAINTAINERS, LM_SYMBOL_COLOR));
 		}
 		//[/Attano]

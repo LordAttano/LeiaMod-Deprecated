@@ -61,36 +61,22 @@ void LM_StringEscape(char *out, char *in, int outSize)
 	}
 }
 
-void LM_CPHandler(gentity_t *ent, char *message)
+void LM_CPHandler( gentity_t *ent, char *message )
 {
-	char outbuf[MAX_STRING_CHARS];
 	mvclientSession_t *mvSess = &mv_clientSessions[ent - g_entities];
+	memset(mvSess->player.common.centerPrintMessage, 0, sizeof(mvSess->player.common.centerPrintMessage));
 
-	// Only allow one centerprint at a time.
-	if (level.time > mvSess->player.common.centerPrintTimer[0] && !mvSess->player.common.centerPrintTimer[1])
-	{
-		memset(mvSess->player.common.centerPrintMessage, 0, sizeof(mvSess->player.common.centerPrintMessage));
-		mvSess->player.common.centerPrintTimer[0] = level.time + 1000;
-		mvSess->player.common.centerPrintTimer[1] = (lm_centerPrintTime.integer - 2);
+	// Set timers.
+	mvSess->player.common.centerPrintTimer[0] = level.time + 1000;
+	mvSess->player.common.centerPrintTimer[1] = (lm_centerPrintTime.integer - 2);
 
-		if (mvSess->player.common.centerPrintTimer[1] < 0)
-		{
-			mvSess->player.common.centerPrintTimer[1] = 0;
-		}
+	// Make sure the the timer is not less than 0.
+	if (mvSess->player.common.centerPrintTimer[1] < 0)
+		mvSess->player.common.centerPrintTimer[1] = 0;
 
-		Q_strncpyz(mvSess->player.common.centerPrintMessage, message, sizeof(mvSess->player.common.centerPrintMessage));
-	}
-	else if (mvSess->player.common.centerPrintTimer[0] < level.time && mvSess->player.common.centerPrintTimer[1])
-	{
-		mvSess->player.common.centerPrintTimer[0]  = level.time + 1000;
-		mvSess->player.common.centerPrintTimer[1] -= 1;
-	}
-
-	if (strlen(mvSess->player.common.centerPrintMessage))
-	{
-		LM_StringEscape(outbuf, mvSess->player.common.centerPrintMessage, sizeof(outbuf));
-		trap_SendServerCommand(ent - g_entities, va("cp \"%s\"", outbuf));
-	}
+	// Perform string escape and copy the message onto the player struct.
+	LM_StringEscape(mvSess->player.common.centerPrintMessage, message, sizeof(mvSess->player.common.centerPrintMessage));
+	trap_SendServerCommand(ent - g_entities, va("cp \"%s\"", mvSess->player.common.centerPrintMessage));
 }
 
 // Get group.

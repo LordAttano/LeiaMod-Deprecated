@@ -21,7 +21,7 @@ Settings
 	falldmg 1
 	ffrules 1
 	saberlock 0
-	gravity 600
+	gravity 400
 	speed 250
 	trainingwheels 0
 }

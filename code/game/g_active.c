@@ -1112,7 +1112,9 @@ void ClientThink_real( gentity_t *ent ) {
 	{
 		if (mvSess->player.common.centerPrintTimer[0] < level.time && mvSess->player.common.centerPrintTimer[1])
 		{
-			LM_CPHandler(ent, mvSess->player.common.centerPrintMessage);
+			mvSess->player.common.centerPrintTimer[0] = level.time + 1000;
+			mvSess->player.common.centerPrintTimer[1] -= 1;
+			trap_SendServerCommand(ent - g_entities, va("cp \"%s\"", mvSess->player.common.centerPrintMessage));
 		}
 	}
 	//[/Attano]

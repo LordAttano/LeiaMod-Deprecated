@@ -412,6 +412,12 @@ typedef struct {
 } lmEntities_t;
 
 extern lmEntities_t lmEntity[MAX_GENTITIES];
+
+typedef struct {
+	const char	*cmd;
+	const char 	*description;
+	void ( *function )( gentity_t * );
+} lmSayCommands_t;
 //[/Attano]
 
 // JK2MV
@@ -442,6 +448,10 @@ void LM_DuelInit( gentity_t *ent );
 int LM_DuelBG( int clientNum, int number );
 void LM_DuelStats( gentity_t *ent );
 void LM_DuelEnd( gentity_t *ent );
+
+// Say commands
+void LM_BuildTime( gentity_t *ent );
+void LM_Motd( gentity_t *ent );
 //[/Attano]
 
 #define	MAX_VOTE_COUNT		3

@@ -1075,16 +1075,26 @@ static void G_SayTo( gentity_t *ent, gentity_t *other, int mode, int color, cons
 		name, Q_COLOR_ESCAPE, color, message));
 }
 
+//[Attano] - Say commands.
+static const lmSayCommands_t sayCommand[] = {
+	{ "build", "Prints the time and date the module was last compiled", LM_BuildTime },
+	{ "motd",  "Prints the message of the day",							LM_Motd		 },
+};
+
+sayCommandSize = sizeof(sayCommand) / sizeof(sayCommand[0]);
+//[/Attano]
+
 #define EC		"\x19"
 
 void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) {
-	int			j;
+	int			i, j;
 	gentity_t	*other;
 	int			color;
 	char		name[64];
 	// don't let text be too long for malicious reasons
 	char		text[MAX_SAY_TEXT];
 	char		location[64];
+	const		lmSayCommands_t *cmd = NULL;
 
 	if ( g_gametype.integer < GT_TEAM && mode == SAY_TEAM ) {
 		mode = SAY_ALL;
@@ -1129,6 +1139,26 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 	if ( g_dedicated.integer ) {
 		G_Printf( "%s%s\n", name, text);
 	}
+
+	//[Attano] - Starts with !, check to see if it is an existing "say command".
+	if (chatText[0] == '!')
+	{
+		// Loop through the commands.
+		for (i = 0; i < sayCommandSize; i++)
+		{
+			// Found a match.
+			if (!Q_stricmp(sayCommand[i].cmd, strchr(chatText, '!') + 1))
+			{
+				cmd = &sayCommand[i];
+				break;
+			}
+		}
+
+		// Run the function.
+		if (cmd != NULL)
+			cmd->function(ent);
+	}
+	//[/Attano]
 
 	// send it to all the apropriate clients
 	for (j = 0; j < level.maxclients; j++) {
