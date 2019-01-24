@@ -256,6 +256,11 @@ void Svcmd_RemoveIP_f (void)
 	G_Printf ( "Didn't find %s.\n", str );
 }
 
+void Svcmd_ListIP_f( void ) 
+{
+	trap_SendConsoleCommand(EXEC_NOW, "g_banIPs\n");
+}
+
 /*
 ===================
 Svcmd_EntityList_f
@@ -380,7 +385,51 @@ void	Svcmd_ForceTeam_f( void ) {
 	SetTeam( &g_entities[cl - level.clients], str );
 }
 
+void Svcmd_JK2gameplay_f( void )
+{
+	char arg1[MAX_TOKEN_CHARS];
+
+	trap_Argv(1, arg1, sizeof(arg1));
+
+	switch (atoi(arg1))
+	{
+	case VERSION_1_02:
+		MV_SetGamePlay(VERSION_1_02);
+		trap_SendServerCommand(-1, "print \"Gameplay changed to 1.02\n\"");
+		break;
+	case VERSION_1_03:
+		MV_SetGamePlay(VERSION_1_03);
+		trap_SendServerCommand(-1, "print \"Gameplay changed to 1.03\n\"");
+		break;
+	default:
+	case VERSION_1_04:
+		MV_SetGamePlay(VERSION_1_04);
+		trap_SendServerCommand(-1, "print \"Gameplay changed to 1.04\n\"");
+		break;
+	}
+}
+
 char	*ConcatArgs( int start );
+
+//[Attano] - ConsoleCommand was an ugly mess before. More tidy now.
+static const lmRconCommands_t rconCommand[] = {
+	{ "addbot",		 1, "<name> <skill> <team> <delay> <altname>", "Add a bot onto the server",										 Svcmd_AddBot_f		 },
+	{ "addip",		 1, "<ip-mask>",							   "Blacklist an IP from the server",								 Svcmd_AddIP_f		 },
+	{ "botlist",	 0, "",										   "Prints a list of all bots installed on the server",				 Svcmd_BotList_f	 },
+	{ "entitylist",  0, "",										   "Prints a list of all entities on the server and their types",	 Svcmd_EntityList_f  },
+	{ "forceteam",	 1, "<client>",								   "Force a player onto another team",								 Svcmd_ForceTeam_f	 },
+	{ "game_memory", 0, "",										   "Prints how much game memory is allocated out of the total pool", Svcmd_GameMem_f	 },
+	
+	#if _DEBUG // Going to assume it is set to debug-only for a reason.
+	{ "jk2gameplay", 1, "<version>",							   "Prints how much game memory is allocated out of the total pool", Svcmd_JK2gameplay_f },
+	#endif
+
+	{ "listip",		 0, "",										   "Prints the entire IP blacklist",								 Svcmd_ListIP_f		 },
+	{ "removeip",	 1, "<ip-mask>",							   "Remove a banned IP from the blacklist",							 Svcmd_RemoveIP_f	 },
+};
+
+rconCommandSize = sizeof(rconCommand) / sizeof(rconCommand[0]);
+//[/Attano]
 
 /*
 =================
@@ -388,90 +437,52 @@ ConsoleCommand
 
 =================
 */
-qboolean	ConsoleCommand( void ) {
+qboolean ConsoleCommand( void )
+{
+	int		i;
 	char	cmd[MAX_TOKEN_CHARS];
+	const	lmRconCommands_t *command = NULL;
 
 	trap_Argv( 0, cmd, sizeof( cmd ) );
 
-	if ( Q_stricmp (cmd, "entitylist") == 0 ) {
-		Svcmd_EntityList_f();
-		return qtrue;
-	}
-
-	if ( Q_stricmp (cmd, "forceteam") == 0 ) {
-		Svcmd_ForceTeam_f();
-		return qtrue;
-	}
-
-	if (Q_stricmp (cmd, "game_memory") == 0) {
-		Svcmd_GameMem_f();
-		return qtrue;
-	}
-
-	if (Q_stricmp (cmd, "addbot") == 0) {
-		Svcmd_AddBot_f();
-		return qtrue;
-	}
-
-	if (Q_stricmp (cmd, "botlist") == 0) {
-		Svcmd_BotList_f();
-		return qtrue;
-	}
-
-/*	if (Q_stricmp (cmd, "abort_podium") == 0) {
-		Svcmd_AbortPodium_f();
-		return qtrue;
-	}
-*/
-	if (Q_stricmp (cmd, "addip") == 0) {
-		Svcmd_AddIP_f();
-		return qtrue;
-	}
-
-	if (Q_stricmp (cmd, "removeip") == 0) {
-		Svcmd_RemoveIP_f();
-		return qtrue;
-	}
-
-	if (Q_stricmp (cmd, "listip") == 0) {
-		trap_SendConsoleCommand( EXEC_NOW, "g_banIPs\n" );
-		return qtrue;
-	}
-
-#if _DEBUG // Only in debug builds
-	if ( !Q_stricmp(cmd, "jk2gameplay") )
+	//[Attano] - Loop through the commands.
+	for (i = 0; i < rconCommandSize; i++)
 	{
-		char arg1[MAX_TOKEN_CHARS];
-
-		trap_Argv( 1, arg1, sizeof(arg1) );
-
-		switch ( atoi(arg1) )
+		// Found a match.
+		if (!Q_stricmp(rconCommand[i].cmd, cmd))
 		{
-			case VERSION_1_02:
-				MV_SetGamePlay(VERSION_1_02);
-				trap_SendServerCommand( -1, "print \"Gameplay changed to 1.02\n\"" );
-				break;
-			case VERSION_1_03:
-				MV_SetGamePlay(VERSION_1_03);
-				trap_SendServerCommand( -1, "print \"Gameplay changed to 1.03\n\"" );
-				break;
-			default:
-			case VERSION_1_04:
-				MV_SetGamePlay(VERSION_1_04);
-				trap_SendServerCommand( -1, "print \"Gameplay changed to 1.04\n\"" );
-				break;
+			command = &rconCommand[i];
+			break;
 		}
-		return qtrue;
 	}
-#endif
+
+	if (command != NULL)
+	{
+		if (trap_Argc() >= command->minArgs + 1)
+		{
+			// Sufficient arguments supplied. Run the function.
+			command->function();
+			return qtrue;
+		}
+		else
+		{
+			// Not enough arguments, print help message.
+			G_Printf("%s[%sError%s]%s Insufficient arguments%s.\n%sDescription%s: %s%s%s.\n%sUsage%s: %s%s %s%s.\n", 
+				LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, 
+				LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->description, LM_SYMBOL_COLOR, 
+				LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->cmd, command->usage, LM_SYMBOL_COLOR);
+			return qtrue;
+		}
+	}
+	//[/Attano]
 
 	if (g_dedicated.integer) {
 		if (Q_stricmp (cmd, "say") == 0) {
-			trap_SendServerCommand( -1, va("print \"server: %s\n\"", ConcatArgs(1) ) );
+			trap_SendServerCommand( -1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(1) ) );
 			return qtrue;
 		}
 		// everything else will also be printed as a say command
-		trap_SendServerCommand( -1, va("print \"server: %s\n\"", ConcatArgs(0) ) );
+		trap_SendServerCommand( -1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(0) ) );
 		return qtrue;
 	}
 

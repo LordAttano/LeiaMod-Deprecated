@@ -416,8 +416,16 @@ extern lmEntities_t lmEntity[MAX_GENTITIES];
 typedef struct {
 	const char	*cmd;
 	const char 	*description;
-	void ( *function )( gentity_t * );
+	void		( *function )( gentity_t * );
 } lmSayCommands_t;
+
+typedef struct {
+	const char	*cmd;
+	int			minArgs;
+	const char 	*usage;
+	const char 	*description;
+	void		( *function )( void );
+} lmRconCommands_t;
 //[/Attano]
 
 // JK2MV

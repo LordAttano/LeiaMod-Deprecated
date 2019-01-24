@@ -626,7 +626,7 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 		Cmd_FollowCycle_f( ent, 1 );
 	}
 
-	if ((client->buttons & BUTTON_ALT_ATTACK) && !(client->oldbuttons & BUTTON_ALT_ATTACK)) //[Attano] - Use alt attack to cycle backwards.
+	if ((client->buttons & BUTTON_ALT_ATTACK) && !(client->oldbuttons & BUTTON_ALT_ATTACK) && client->sess.spectatorState == SPECTATOR_FOLLOW) //[Attano] - Cycle backwards.
 		Cmd_FollowCycle_f(ent, -1);
 
 	if (client->sess.spectatorState == SPECTATOR_FOLLOW && (ucmd->upmove > 0))
