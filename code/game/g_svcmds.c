@@ -393,19 +393,19 @@ void Svcmd_JK2gameplay_f( void )
 
 	switch (atoi(arg1))
 	{
-	case VERSION_1_02:
-		MV_SetGamePlay(VERSION_1_02);
-		trap_SendServerCommand(-1, "print \"Gameplay changed to 1.02\n\"");
-		break;
-	case VERSION_1_03:
-		MV_SetGamePlay(VERSION_1_03);
-		trap_SendServerCommand(-1, "print \"Gameplay changed to 1.03\n\"");
-		break;
-	default:
-	case VERSION_1_04:
-		MV_SetGamePlay(VERSION_1_04);
-		trap_SendServerCommand(-1, "print \"Gameplay changed to 1.04\n\"");
-		break;
+		case VERSION_1_02:
+			MV_SetGamePlay(VERSION_1_02);
+			trap_SendServerCommand(-1, "print \"Gameplay changed to 1.02\n\"");
+			break;
+		case VERSION_1_03:
+			MV_SetGamePlay(VERSION_1_03);
+			trap_SendServerCommand(-1, "print \"Gameplay changed to 1.03\n\"");
+			break;
+		default:
+		case VERSION_1_04:
+			MV_SetGamePlay(VERSION_1_04);
+			trap_SendServerCommand(-1, "print \"Gameplay changed to 1.04\n\"");
+			break;
 	}
 }
 
@@ -476,13 +476,15 @@ qboolean ConsoleCommand( void )
 	}
 	//[/Attano]
 
-	if (g_dedicated.integer) {
-		if (Q_stricmp (cmd, "say") == 0) {
-			trap_SendServerCommand( -1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(1) ) );
+	if (g_dedicated.integer) 
+	{
+		if (!Q_stricmp (cmd, "say")) 
+		{
+			trap_SendServerCommand(-1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(1)));
 			return qtrue;
 		}
 		// everything else will also be printed as a say command
-		trap_SendServerCommand( -1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(0) ) );
+		trap_SendServerCommand(-1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(0)));
 		return qtrue;
 	}
 

@@ -383,6 +383,14 @@ void LM_DuelHandle( gentity_t *ent, int action )
 	{
 		// Grab mode from command string and check if it exists.
 		mode = LM_GetDuel(cmd);
+
+		if (!Q_stricmp(mode, "help"))
+		{
+			trap_SendServerCommand(ent - g_entities, va("print \"%s%s %sDuels %s%s\n\"", LM_SYMBOL_COLOR, LM_START_SYMBOL, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_END_SYMBOL));
+			LM_DuelList(ent);
+			return;
+		}
+
 		if (LM_DuelExists(mode))
 		{
 			// If private duels are disabled we obviously don't allow them.
@@ -505,7 +513,7 @@ void LM_DuelHandle( gentity_t *ent, int action )
 					}
 
 					// Broadcast the event.
-					trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s has become engaged in a %s%s with %s%s!\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, 
+					trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s%s has become engaged in a %s with %s%s%s!\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 						challenged->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, ent->client->pers.netname, LM_SYMBOL_COLOR));
 
 					// Initiate the duel. Apply health and other settings.
@@ -567,19 +575,19 @@ void LM_DuelHandle( gentity_t *ent, int action )
 		{
 			if (mvSess->player.duel.counter > mvSessChallenged->player.duel.counter)
 			{
-				trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s %sdefeated %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+				trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s %sdefeated %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 					ent->client->pers.netname, LM_TEXT_COLOR, challenged->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, mvSess->player.duel.counter,
 					LM_SYMBOL_COLOR, mvSessChallenged->player.duel.counter, LM_SYMBOL_COLOR));
 			}
 			else if (mvSessChallenged->player.duel.counter > mvSess->player.duel.counter)
 			{
-				trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s %sdefeated %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+				trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s %sdefeated %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 					challenged->client->pers.netname, LM_TEXT_COLOR, ent->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, mvSessChallenged->player.duel.counter,
 					LM_SYMBOL_COLOR, mvSess->player.duel.counter, LM_SYMBOL_COLOR));
 			}
 			else
 			{
-				trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s %stied with %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+				trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s %stied with %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 					ent->client->pers.netname, LM_TEXT_COLOR, challenged->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, mvSess->player.duel.counter,
 					LM_SYMBOL_COLOR, mvSessChallenged->player.duel.counter, LM_SYMBOL_COLOR));
 			}
@@ -593,7 +601,7 @@ void LM_DuelHandle( gentity_t *ent, int action )
 			if (ent->health > 0 && ent->client->ps.stats[STAT_HEALTH] > 0)
 			{
 				if (mvSess->player.duel.fraglimit == 1)
-					trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s %sdefeated %s %sin a %s %swith ^1%i%s/^2%i %sremaining%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+					trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s %sdefeated %s %sin a %s %swith ^1%i%s/^2%i %sremaining%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 						ent->client->pers.netname, LM_TEXT_COLOR, challenged->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, ent->client->ps.stats[STAT_HEALTH],
 						LM_SYMBOL_COLOR, ent->client->ps.stats[STAT_ARMOR], LM_TEXT_COLOR, LM_SYMBOL_COLOR));
 
@@ -671,7 +679,10 @@ void LM_DuelEnd( gentity_t *ent )
 	}
 	else
 	{
-		trap_SendServerCommand(ent->client->ps.duelIndex, va("print \"%s[%sDuel%s] %s %shas requested for the match to come to an end%s.\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, ent->client->pers.netname, LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+		trap_SendServerCommand(ent - g_entities, va("print \"%s[%sDuel%s] %sYou have requested for the match to come to an end%s.\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+			LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+		trap_SendServerCommand(ent->client->ps.duelIndex, va("print \"%s[%sDuel%s] %s%s %shas requested for the match to come to an end%s. %sDo %s/%smatchend to accept the request%s.\n\"",
+			LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ent->client->pers.netname, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR));
 	}
 }
 
@@ -691,19 +702,19 @@ void LM_DuelStats( gentity_t *ent )
 
 	if (mvSess->player.duel.counter > mvSessChallenged->player.duel.counter)
 	{
-		trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s %sis ahead of %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+		trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s %sis ahead of %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 			ent->client->pers.netname, LM_TEXT_COLOR, challenged->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, mvSess->player.duel.counter,
 			LM_SYMBOL_COLOR, mvSessChallenged->player.duel.counter, LM_SYMBOL_COLOR));
 	}
 	else if (mvSessChallenged->player.duel.counter > mvSess->player.duel.counter)
 	{
-		trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s %sis ahead of %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+		trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s %sis ahead of %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 			challenged->client->pers.netname, LM_TEXT_COLOR, ent->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, mvSessChallenged->player.duel.counter,
 			LM_SYMBOL_COLOR, mvSess->player.duel.counter, LM_SYMBOL_COLOR));
 	}
 	else
 	{
-		trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s %sis currently tied with %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR,
+		trap_SendServerCommand(-1, va("print \"%s[%sDuel%s] %s%s %sis currently tied with %s %sin a %s %sby ^2%i%s - ^1%i%s! \"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR,
 			ent->client->pers.netname, LM_TEXT_COLOR, challenged->client->pers.netname, LM_TEXT_COLOR, mvSess->player.duel.name, LM_TEXT_COLOR, mvSess->player.duel.counter,
 			LM_SYMBOL_COLOR, mvSessChallenged->player.duel.counter, LM_SYMBOL_COLOR));
 	}
