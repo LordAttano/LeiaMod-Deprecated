@@ -1173,23 +1173,28 @@ void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText ) 
 Cmd_Say_f
 ==================
 */
-static void Cmd_Say_f( gentity_t *ent, int mode, qboolean arg0 ) {
+static void Cmd_Say_f( gentity_t *ent )
+{
 	char		*p;
 
-	if ( trap_Argc () < 2 && !arg0 ) {
+	if ( trap_Argc () < 2 ) 
 		return;
-	}
+	
+	p = ConcatArgs( 1 );
 
-	if (arg0)
-	{
-		p = ConcatArgs( 0 );
-	}
-	else
-	{
-		p = ConcatArgs( 1 );
-	}
+	G_Say( ent, NULL, SAY_ALL, p );
+}
 
-	G_Say( ent, NULL, mode, p );
+static void Cmd_SayTeam_f( gentity_t *ent )
+{
+	const char	*p;
+
+	if (trap_Argc() < 2)
+		return;
+
+	p = ConcatArgs( 1 );
+
+	G_Say( ent, NULL, SAY_TEAM, p );
 }
 
 /*
@@ -2354,15 +2359,217 @@ void DismembermentTest(gentity_t *self);
 void DismembermentByNum(gentity_t *self, int num);
 #endif
 
+//[Attano] - ClientCommand was an ugly mess before. More tidy now.
+static void Cmd_AddBot_f( gentity_t *ent )
+{
+	trap_SendServerCommand(ent - g_entities, va("print \"%s.\n\"", G_GetStripEdString("SVINGAME", "ONLY_ADD_BOTS_AS_SERVER")));
+}
+
+static void Cmd_FollowNext_f( gentity_t *ent )
+{
+	Cmd_FollowCycle_f(ent, 1);
+}
+
+static void Cmd_FollowPrev_f( gentity_t *ent )
+{
+	Cmd_FollowCycle_f(ent, -1);
+}
+
+static void Cmd_TheDestroyer_f( gentity_t *ent )
+{
+	if (!ent->client->ps.saberHolstered || ent->client->ps.weapon != WP_SABER)
+	{
+		trap_SendServerCommand(ent - g_entities, va("print \"%sOnly those who%s'%ss mind are truly at peace may achieve this ancient power%s.\n\"", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+		return;
+	}
+
+	Cmd_ToggleSaber_f(ent);
+
+	if (ent->client->ps.dualBlade)
+	{
+		ent->client->ps.dualBlade = qfalse;
+	}
+	else
+	{
+		ent->client->ps.dualBlade = qtrue;
+
+		trap_SendServerCommand(-1, va("print \"%sTHE DESTROYER COMETH\n\"", S_COLOR_RED));
+		G_ScreenShake(vec3_origin, NULL, 10.0f, 800, qtrue);
+	}
+}
+
+static void Cmd_DebugDismemberment_f( gentity_t *ent )
+{
+	Cmd_Kill_f(ent);
+	if (ent->health < 1)
+	{
+		char	arg[MAX_STRING_CHARS];
+		int		iArg = 0;
+
+		if (trap_Argc() > 1)
+		{
+			trap_Argv(1, arg, sizeof(arg));
+
+			if (arg[0])
+			{
+				iArg = atoi(arg);
+			}
+		}
+
+		DismembermentByNum(ent, iArg);
+	}
+}
+
+static void Cmd_DebugKnockMeDown_f( gentity_t *ent )
+{
+	ent->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
+	ent->client->ps.forceDodgeAnim = 0;
+	if (trap_Argc() > 1)
+	{
+		ent->client->ps.forceHandExtendTime = level.time + 1100;
+		ent->client->ps.quickerGetup = qfalse;
+	}
+	else
+	{
+		ent->client->ps.forceHandExtendTime = level.time + 700;
+		ent->client->ps.quickerGetup = qtrue;
+	}
+}
+
+static void Cmd_HeadExplodey_f( gentity_t *ent )
+{
+	Cmd_Kill_f(ent);
+	if (ent->health < 1)
+	{
+		float presaveVel = ent->client->ps.velocity[2];
+		ent->client->ps.velocity[2] = 500;
+		DismembermentTest(ent);
+		ent->client->ps.velocity[2] = presaveVel;
+	}
+}
+
+static void Cmd_LoveAndPeace_f( gentity_t *ent )
+{
+	trace_t tr;
+	vec3_t fPos;
+
+	AngleVectors(ent->client->ps.viewangles, fPos, 0, 0);
+
+	fPos[0] = ent->client->ps.origin[0] + fPos[0] * 40;
+	fPos[1] = ent->client->ps.origin[1] + fPos[1] * 40;
+	fPos[2] = ent->client->ps.origin[2] + fPos[2] * 40;
+
+	trap_Trace(&tr, ent->client->ps.origin, 0, 0, fPos, ent->s.number, ent->clipmask);
+
+	if (tr.entityNum < MAX_CLIENTS && tr.entityNum != ent->s.number)
+	{
+		gentity_t *other = &g_entities[tr.entityNum];
+
+		if (other && other->inuse && other->client)
+		{
+			vec3_t entDir;
+			vec3_t otherDir;
+			vec3_t entAngles;
+			vec3_t otherAngles;
+
+			if (ent->client->ps.weapon == WP_SABER && !ent->client->ps.saberHolstered)
+			{
+				Cmd_ToggleSaber_f(ent);
+			}
+
+			if (other->client->ps.weapon == WP_SABER && !other->client->ps.saberHolstered)
+			{
+				Cmd_ToggleSaber_f(other);
+			}
+
+			if ((ent->client->ps.weapon != WP_SABER || ent->client->ps.saberHolstered) && (other->client->ps.weapon != WP_SABER || other->client->ps.saberHolstered))
+			{
+				VectorSubtract(other->client->ps.origin, ent->client->ps.origin, otherDir);
+				VectorCopy(ent->client->ps.viewangles, entAngles);
+				entAngles[YAW] = vectoyaw(otherDir);
+				SetClientViewAngle(ent, entAngles);
+
+				StandardSetBodyAnim(ent, BOTH_KISSER1LOOP, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_HOLDLESS);
+				ent->client->ps.saberMove = LS_NONE;
+				ent->client->ps.saberBlocked = 0;
+				ent->client->ps.saberBlocking = 0;
+
+				VectorSubtract(ent->client->ps.origin, other->client->ps.origin, entDir);
+				VectorCopy(other->client->ps.viewangles, otherAngles);
+				otherAngles[YAW] = vectoyaw(entDir);
+				SetClientViewAngle(other, otherAngles);
+
+				StandardSetBodyAnim(other, BOTH_KISSEE1LOOP, SETANIM_FLAG_OVERRIDE | SETANIM_FLAG_HOLD | SETANIM_FLAG_HOLDLESS);
+				other->client->ps.saberMove = LS_NONE;
+				other->client->ps.saberBlocked = 0;
+				other->client->ps.saberBlocking = 0;
+			}
+		}
+	}
+}
+
+static const lmClientCommands_t clientCommands[] = {
+	{ "matchstats",			0, "",											  "Broadcasts the current statistics of the private match you are engaged in",							  LM_DuelStats,				CMD_NOINTERMISSION									},
+	{ "matchend",			0, "",											  "Ends the current private match you are engaged in. Ending the match requires usage from both parties", LM_DuelEnd,				CMD_NOINTERMISSION									},
+	
+	{ "say",				1, "<message>",									  "Send a message to everyone on the server",															  Cmd_Say_f,				CMD_UNLISTED										},
+	{ "say_team",			1, "<message>",									  "Send a message to your current team",																  Cmd_SayTeam_f,			CMD_UNLISTED										},
+	{ "tell",				2, "<client> <message>",						  "Send a private message to another player",															  Cmd_Tell_f,				CMD_UNLISTED										},
+	
+	{ "callvote",			1, "<votestring>",								  "Call a vote to change various game related settings",												  Cmd_CallVote_f,			CMD_NOINTERMISSION									},
+	
+	{ "give",				0, "",											  "",																									  Cmd_Give_f,				CMD_NOINTERMISSION|CMD_CHEAT|CMD_ALIVE				},
+	{ "god",				0, "",											  "Grants you the gift of immortality",																	  Cmd_God_f,				CMD_NOINTERMISSION|CMD_CHEAT|CMD_ALIVE				},
+	{ "g2animent",			0, "<type> <alignment> <weapon> <model> <sound>", "Spawn an animent and build yourself an army of braindead dummies",									  G_CreateExampleAnimEnt,	CMD_CHEAT											},
+	{ "noclip",				0, "",											  "Allows you to clip through everything and navigate through the endless void",						  Cmd_Noclip_f,				CMD_NOINTERMISSION|CMD_CHEAT|CMD_ALIVE				},
+	{ "setviewpos",			4, "<x> <y> <z> <yaw>",							  "",																									  Cmd_SetViewpos_f,			CMD_NOINTERMISSION|CMD_CHEAT						},
+	{ "teamtask",			1, "",											  "",																									  Cmd_TeamTask_f,			CMD_NOINTERMISSION|CMD_CHEAT|CMD_UNLISTED			},
+	{ "levelshot",			0, "",											  "",																									  Cmd_LevelShot_f,			CMD_NOINTERMISSION|CMD_CHEAT|CMD_ALIVE|CMD_UNLISTED },
+	{ "thedestroyer",		0, "",											  "Grants you a dual bladed lightsaber",																  Cmd_TheDestroyer_f,		CMD_NOINTERMISSION|CMD_CHEAT|CMD_ALIVE				},
+	{ "notarget",			0, "",											  "",																									  Cmd_Notarget_f,			CMD_NOINTERMISSION|CMD_CHEAT|CMD_ALIVE				},
+
+	{ "score",				0, "",											  "",																									  Cmd_Score_f,				CMD_UNLISTED										},
+	{ "kill",				0, "",											  "Kill yourself",																						  Cmd_Kill_f,				CMD_NOINTERMISSION|CMD_ALIVE|CMD_UNLISTED			},
+	{ "follow",				0, "",											  "",																									  Cmd_Follow_f,				CMD_NOINTERMISSION|CMD_UNLISTED						},
+	{ "team",				0, "",											  "",																									  Cmd_Team_f,				CMD_NOINTERMISSION|CMD_UNLISTED						},
+	{ "follownext",			0, "",											  "",																									  Cmd_FollowNext_f,			CMD_NOINTERMISSION|CMD_UNLISTED						},
+	{ "followprev",			0, "",											  "",																									  Cmd_FollowPrev_f,			CMD_NOINTERMISSION|CMD_UNLISTED						},
+	{ "forcechanged",		0, "",											  "",																									  Cmd_ForceChanged_f,		CMD_UNLISTED										},
+	{ "where",				0, "",											  "",																									  Cmd_Where_f,				CMD_UNLISTED										},
+	{ "vote",				1, "<vote>",									  "Cast your vote to influence polls on the server",													  Cmd_Vote_f,				CMD_NOINTERMISSION|CMD_UNLISTED						},
+	{ "callteamvote",		0, "",											  "",																									  Cmd_CallTeamVote_f,		CMD_NOINTERMISSION|CMD_UNLISTED						},
+	{ "teamvote",			0, "",											  "",																									  Cmd_TeamVote_f,			CMD_NOINTERMISSION|CMD_UNLISTED						},
+	{ "gc",					2, "<client> <command>",						  "Send pre-defined game commands to other players",													  Cmd_GameCommand_f,		CMD_NOINTERMISSION|CMD_UNLISTED						},
+
+	{ "addbot",				1, "<name> <skill> <team> <delay> <altname>",	  "Add a bot onto the server",																			  Cmd_AddBot_f,				CMD_UNLISTED										},
+
+	// The following serve no purpose and should only be used for debugging.
+#ifdef _DEBUG
+	{ "#mm",				0, "",											  "Broken command that was to turn player into an AT-ST",												  G_PlayerBecomeATST,		CMD_CHEAT|CMD_UNLISTED								},
+	{ "headexplodey",		0, "",											  "Blows the head off of the player",																	  Cmd_HeadExplodey_f,		CMD_CHEAT											},
+	{ "loveandpeace",		0, "",											  "Allows two players to embrace in a heartfelt kiss",													  Cmd_LoveAndPeace_f,		CMD_CHEAT											},
+	{ "debugsetsabermove",	1, "<animation>",								  "Debug saber related moves",																			  Cmd_DebugSetSaberMove_f,	CMD_CHEAT|CMD_UNLISTED								},
+	{ "debugsetbodyanim",	0, "<animation>",								  "Debug player animations",																			  Cmd_DebugSetBodyAnim_f,	CMD_CHEAT|CMD_UNLISTED								},
+	{ "debugdismemberment", 0, "<limb>",									  "Debug player dismemberment",																			  Cmd_DebugDismemberment_f, CMD_CHEAT|CMD_UNLISTED								},
+	{ "debugknockmedown",	0, "<quickgetup>",								  "Debug player knockdown and getup",																	  Cmd_DebugKnockMeDown_f,	CMD_CHEAT|CMD_UNLISTED								},
+#endif
+};
+
+clientCommandSize = sizeof(clientCommands) / sizeof(clientCommands[0]);
+//[/Attano]
+
 /*
 =================
 ClientCommand
 =================
 */
-void ClientCommand( int clientNum ) {
+void ClientCommand( int clientNum ) 
+{
 	gentity_t *ent;
 	char	cmd[MAX_TOKEN_CHARS];
 	mvclientSession_t *mvSess;
+	int i;
+	const	lmClientCommands_t *command = NULL;
 
 	ent = g_entities + clientNum;
 	
@@ -2376,7 +2583,7 @@ void ClientCommand( int clientNum ) {
 	trap_Argv( 0, cmd, sizeof( cmd ) );
 	
 	// Filter "\n" and "\r"
-	if( strchr(ConcatArgs(0), '\n') != NULL || strchr(ConcatArgs(0), '\r') != NULL )
+	if ( strchr(ConcatArgs(0), '\n') != NULL || strchr(ConcatArgs(0), '\r') != NULL )
 	{
 		trap_SendServerCommand( clientNum, "print \"Invalid input - command blocked.\n\"" );
 		G_Printf("ClientCommand: client '%i' (%s) tried to use an invalid command - command blocked.\n", clientNum, ent->client->pers.netname);
@@ -2390,365 +2597,85 @@ void ClientCommand( int clientNum ) {
 	}
 	//end rww
 
-	if (Q_stricmp (cmd, "say") == 0) {
-		Cmd_Say_f (ent, SAY_ALL, qfalse);
-		return;
-	}
-	if (Q_stricmp (cmd, "say_team") == 0) {
-		Cmd_Say_f (ent, SAY_TEAM, qfalse);
-		return;
-	}
-	if (Q_stricmp (cmd, "tell") == 0) {
-		Cmd_Tell_f ( ent );
-		return;
-	}
-	/*
-	if (Q_stricmp (cmd, "vsay") == 0) {
-		Cmd_Voice_f (ent, SAY_ALL, qfalse, qfalse);
-		return;
-	}
-	if (Q_stricmp (cmd, "vsay_team") == 0) {
-		Cmd_Voice_f (ent, SAY_TEAM, qfalse, qfalse);
-		return;
-	}
-	if (Q_stricmp (cmd, "vtell") == 0) {
-		Cmd_VoiceTell_f ( ent, qfalse );
-		return;
-	}
-	if (Q_stricmp (cmd, "vosay") == 0) {
-		Cmd_Voice_f (ent, SAY_ALL, qfalse, qtrue);
-		return;
-	}
-	if (Q_stricmp (cmd, "vosay_team") == 0) {
-		Cmd_Voice_f (ent, SAY_TEAM, qfalse, qtrue);
-		return;
-	}
-	if (Q_stricmp (cmd, "votell") == 0) {
-		Cmd_VoiceTell_f ( ent, qtrue );
-		return;
-	}
-	if (Q_stricmp (cmd, "vtaunt") == 0) {
-		Cmd_VoiceTaunt_f ( ent );
-		return;
-	}
-	*/
-	if (Q_stricmp (cmd, "score") == 0) {
-		Cmd_Score_f (ent);
-		return;
-	}
 
-	// ignore all other commands when at intermission
-	if (level.intermissiontime)
+	//[Attano] - Loop through the commands.
+	for (i = 0; i < clientCommandSize; i++)
 	{
-		qboolean giveError = qfalse;
-
-		if (!Q_stricmp(cmd, "give"))
+		// Found a match.
+		if (!Q_stricmp(clientCommands[i].cmd, cmd))
 		{
-			giveError = qtrue;
+			command = &clientCommands[i];
+			break;
 		}
-		else if (!Q_stricmp(cmd, "god"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "notarget"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "noclip"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "kill"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "teamtask"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "levelshot"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "follow"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "follownext"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "followprev"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "team"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "forcechanged"))
-		{ //special case: still update force change
-			Cmd_ForceChanged_f (ent);
-			return;
-		}
-		else if (!Q_stricmp(cmd, "where"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "callvote"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "vote"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "callteamvote"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "teamvote"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "gc"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "setviewpos"))
-		{
-			giveError = qtrue;
-		}
-		else if (!Q_stricmp(cmd, "stats"))
-		{
-			giveError = qtrue;
-		}
-
-		if (giveError)
-		{
-			trap_SendServerCommand( clientNum, va("print \"You cannot perform this task (%s) during the intermission.\n\"", cmd ) );
-		}
-		else
-		{
-			Cmd_Say_f (ent, qfalse, qtrue);
-		}
-		return;
 	}
 
-	if (Q_stricmp(cmd, "give") == 0)
+	// Special case for duel engage.
+	if (strstr(cmd, "engage_"))
 	{
-		Cmd_Give_f(ent);
-	}
-	else if (Q_stricmp(cmd, "god") == 0)
-		Cmd_God_f(ent);
-	else if (Q_stricmp(cmd, "notarget") == 0)
-		Cmd_Notarget_f(ent);
-	else if (Q_stricmp(cmd, "noclip") == 0)
-		Cmd_Noclip_f(ent);
-	else if (Q_stricmp(cmd, "kill") == 0)
-		Cmd_Kill_f(ent);
-	else if (Q_stricmp(cmd, "teamtask") == 0)
-		Cmd_TeamTask_f(ent);
-	else if (Q_stricmp(cmd, "levelshot") == 0)
-		Cmd_LevelShot_f(ent);
-	else if (Q_stricmp(cmd, "follow") == 0)
-		Cmd_Follow_f(ent);
-	else if (Q_stricmp(cmd, "follownext") == 0)
-		Cmd_FollowCycle_f(ent, 1);
-	else if (Q_stricmp(cmd, "followprev") == 0)
-		Cmd_FollowCycle_f(ent, -1);
-	else if (Q_stricmp(cmd, "team") == 0)
-		Cmd_Team_f(ent);
-	else if (Q_stricmp(cmd, "forcechanged") == 0)
-		Cmd_ForceChanged_f(ent);
-	else if (Q_stricmp(cmd, "where") == 0)
-		Cmd_Where_f(ent);
-	else if (Q_stricmp(cmd, "callvote") == 0)
-		Cmd_CallVote_f(ent);
-	else if (Q_stricmp(cmd, "vote") == 0)
-		Cmd_Vote_f(ent);
-	else if (Q_stricmp(cmd, "callteamvote") == 0)
-		Cmd_CallTeamVote_f(ent);
-	else if (Q_stricmp(cmd, "teamvote") == 0)
-		Cmd_TeamVote_f(ent);
-	else if (Q_stricmp(cmd, "gc") == 0)
-		Cmd_GameCommand_f(ent);
-	else if (Q_stricmp(cmd, "setviewpos") == 0)
-		Cmd_SetViewpos_f(ent);
-	else if (Q_stricmp(cmd, "stats") == 0)
-		Cmd_Stats_f(ent);
-	//[Attano] - New commands. FIXME: Write cleaner function for client commands.
-	else if (strstr(cmd, "engage_"))
 		LM_DuelHandle(ent, 1);
-	else if (!Q_stricmp(cmd, "matchstats"))
-		LM_DuelStats(ent);
-	else if (!Q_stricmp(cmd, "matchend"))
-		LM_DuelEnd(ent);
-	//[/Attano]
-		
-	/*
-	else if (Q_stricmp(cmd, "#mm") == 0 && CheatsOk( ent ))
-	{
-		G_PlayerBecomeATST(ent);
+		return;
 	}
-	*/
-	//I broke the ATST when I restructured it to use a single global anim set for all client animation.
-	//You can fix it, but you'll have to implement unique animations (per character) again.
-#ifdef _DEBUG //sigh..
-	else if (Q_stricmp(cmd, "headexplodey") == 0 && CheatsOk( ent ))
+
+	if (command != NULL)
 	{
-		Cmd_Kill_f (ent);
-		if (ent->health < 1)
+		// Don't execute the command if ...
+		if (command->flags & CMD_NOINTERMISSION)
 		{
-			float presaveVel = ent->client->ps.velocity[2];
-			ent->client->ps.velocity[2] = 500;
-			DismembermentTest(ent);
-			ent->client->ps.velocity[2] = presaveVel;
-		}
-	}
-	else if (Q_stricmp(cmd, "g2animent") == 0 && CheatsOk( ent ))
-	{
-		G_CreateExampleAnimEnt(ent);
-	}
-	else if (Q_stricmp(cmd, "loveandpeace") == 0 && CheatsOk( ent ))
-	{
-		trace_t tr;
-		vec3_t fPos;
-
-		AngleVectors(ent->client->ps.viewangles, fPos, 0, 0);
-
-		fPos[0] = ent->client->ps.origin[0] + fPos[0]*40;
-		fPos[1] = ent->client->ps.origin[1] + fPos[1]*40;
-		fPos[2] = ent->client->ps.origin[2] + fPos[2]*40;
-
-		trap_Trace(&tr, ent->client->ps.origin, 0, 0, fPos, ent->s.number, ent->clipmask);
-
-		if (tr.entityNum < MAX_CLIENTS && tr.entityNum != ent->s.number)
-		{
-			gentity_t *other = &g_entities[tr.entityNum];
-
-			if (other && other->inuse && other->client)
+			if (level.intermissiontime || level.intermissionQueued)
 			{
-				vec3_t entDir;
-				vec3_t otherDir;
-				vec3_t entAngles;
-				vec3_t otherAngles;
-
-				if (ent->client->ps.weapon == WP_SABER && !ent->client->ps.saberHolstered)
-				{
-					Cmd_ToggleSaber_f(ent);
-				}
-
-				if (other->client->ps.weapon == WP_SABER && !other->client->ps.saberHolstered)
-				{
-					Cmd_ToggleSaber_f(other);
-				}
-
-				if ((ent->client->ps.weapon != WP_SABER || ent->client->ps.saberHolstered) &&
-					(other->client->ps.weapon != WP_SABER || other->client->ps.saberHolstered))
-				{
-					VectorSubtract( other->client->ps.origin, ent->client->ps.origin, otherDir );
-					VectorCopy( ent->client->ps.viewangles, entAngles );
-					entAngles[YAW] = vectoyaw( otherDir );
-					SetClientViewAngle( ent, entAngles );
-
-					StandardSetBodyAnim(ent, BOTH_KISSER1LOOP, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD|SETANIM_FLAG_HOLDLESS);
-					ent->client->ps.saberMove = LS_NONE;
-					ent->client->ps.saberBlocked = 0;
-					ent->client->ps.saberBlocking = 0;
-
-					VectorSubtract( ent->client->ps.origin, other->client->ps.origin, entDir );
-					VectorCopy( other->client->ps.viewangles, otherAngles );
-					otherAngles[YAW] = vectoyaw( entDir );
-					SetClientViewAngle( other, otherAngles );
-
-					StandardSetBodyAnim(other, BOTH_KISSEE1LOOP, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD|SETANIM_FLAG_HOLDLESS);
-					other->client->ps.saberMove = LS_NONE;
-					other->client->ps.saberBlocked = 0;
-					other->client->ps.saberBlocking = 0;
-				}
+				trap_SendServerCommand(clientNum, va("print \"%sYou cannot perform this task %s(%s%s%s)%s during the intermission%s.\n\"", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, cmd, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+				return;
 			}
 		}
-	}
-#endif
-	else if (Q_stricmp(cmd, "thedestroyer") == 0 && CheatsOk( ent ) && ent && ent->client && ent->client->ps.saberHolstered && ent->client->ps.weapon == WP_SABER)
-	{
-		Cmd_ToggleSaber_f(ent);
 
-		if (!ent->client->ps.saberHolstered)
+		if (command->flags & CMD_CHEAT) 
 		{
-			if (ent->client->ps.dualBlade)
+			if (!g_cheats.integer || !CheatsOk(ent))
 			{
-				ent->client->ps.dualBlade = qfalse;
-				//ent->client->ps.fd.saberAnimLevel = FORCE_LEVEL_1;
-			}
-			else
-			{
-				ent->client->ps.dualBlade = qtrue;
-
-				trap_SendServerCommand( -1, va("print \"%sTHE DESTROYER COMETH\n\"", S_COLOR_RED) );
-				G_ScreenShake(vec3_origin, NULL, 10.0f, 800, qtrue);
-				//ent->client->ps.fd.saberAnimLevel = FORCE_LEVEL_3;
+				trap_SendServerCommand(ent - g_entities, va("print \"%s%s\n\"", LM_TEXT_COLOR, G_GetStripEdString("SVINGAME", "NOCHEATS")));
+				return;
 			}
 		}
-	}
-#ifdef _DEBUG
-	else if (Q_stricmp(cmd, "debugSetSaberMove") == 0)
-	{
-		Cmd_DebugSetSaberMove_f(ent);
-	}
-	else if (Q_stricmp(cmd, "debugSetBodyAnim") == 0)
-	{
-		Cmd_DebugSetBodyAnim_f(ent, SETANIM_FLAG_OVERRIDE|SETANIM_FLAG_HOLD);
-	}
-	else if (Q_stricmp(cmd, "debugDismemberment") == 0)
-	{
-		Cmd_Kill_f (ent);
-		if (ent->health < 1)
-		{
-			char	arg[MAX_STRING_CHARS];
-			int		iArg = 0;
 
-			if (trap_Argc() > 1)
+		if (command->flags & CMD_ALIVE) 
+		{
+			if (ent->client->sess.spectatorState != SPECTATOR_NOT || ent->health <= 0)
 			{
-				trap_Argv( 1, arg, sizeof( arg ) );
-
-				if (arg[0])
-				{
-					iArg = atoi(arg);
-				}
+				trap_SendServerCommand(ent - g_entities, va("print \"%s%s\n\"", LM_TEXT_COLOR, G_GetStripEdString("SVINGAME", "MUSTBEALIVE")));
+				return;
 			}
-
-			DismembermentByNum(ent, iArg);
 		}
-	}
-	else if (Q_stricmp(cmd, "debugKnockMeDown") == 0)
-	{
-		ent->client->ps.forceHandExtend = HANDEXTEND_KNOCKDOWN;
-		ent->client->ps.forceDodgeAnim = 0;
-		if (trap_Argc() > 1)
+
+		if (trap_Argc() >= command->minArgs + 1)
 		{
-			ent->client->ps.forceHandExtendTime = level.time + 1100;
-			ent->client->ps.quickerGetup = qfalse;
+			// Sufficient arguments supplied. Run the function.
+			command->function(ent);
 		}
 		else
 		{
-			ent->client->ps.forceHandExtendTime = level.time + 700;
-			ent->client->ps.quickerGetup = qtrue;
+			trap_SendServerCommand(clientNum, va("print \"%s[%sError%s]%s Insufficient arguments%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+
+			// If guidance on usage exists ...
+			if (strlen(command->description))
+			{
+				trap_SendServerCommand(clientNum, va("print \"%sDescription%s: %s%s%s.\n\"", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->description, LM_SYMBOL_COLOR));
+			}
+
+			if (strlen(command->usage))
+			{
+				trap_SendServerCommand(clientNum, va("print \"%sUsage%s: /%s%s %s%s.\n\"", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->cmd, command->usage, LM_SYMBOL_COLOR));
+			}
+
+			// No guidance found.
+			if (!strlen(command->description) && !strlen(command->usage))
+			{
+				trap_SendServerCommand(clientNum, va("print \"%sNo description and usage guidance exists for this command at this time%s.\n\"", LM_TEXT_COLOR, LM_SYMBOL_COLOR));
+			}
 		}
 	}
-#endif
-
 	else
 	{
-		if (Q_stricmp(cmd, "addbot") == 0)
-		{ //because addbot isn't a recognized command unless you're the server, but it is in the menus regardless
-//			trap_SendServerCommand( clientNum, va("print \"You can only add bots as the server.\n\"" ) );
-			trap_SendServerCommand( clientNum, va("print \"%s.\n\"", G_GetStripEdString("SVINGAME", "ONLY_ADD_BOTS_AS_SERVER")));
-		}
-		else
-		{
-			trap_SendServerCommand( clientNum, va("print \"unknown cmd %s\n\"", cmd ) );
-		}
+		trap_SendServerCommand(clientNum, va("print \"%sUnknown command %s'%s%s%s'.\n\"", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, cmd, LM_SYMBOL_COLOR));
 	}
+	//[/Attano]
 }

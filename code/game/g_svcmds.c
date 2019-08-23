@@ -409,7 +409,15 @@ void Svcmd_JK2gameplay_f( void )
 	}
 }
 
-char	*ConcatArgs( int start );
+char *ConcatArgs( int start );
+
+void Svcmd_Say_f( void )
+{
+	if (g_dedicated.integer)
+	{
+		trap_SendServerCommand(-1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(1)));
+	}
+}
 
 //[Attano] - ConsoleCommand was an ugly mess before. More tidy now.
 static const lmRconCommands_t rconCommand[] = {
@@ -418,14 +426,15 @@ static const lmRconCommands_t rconCommand[] = {
 	{ "botlist",	 0, "",										   "Prints a list of all bots installed on the server",				 Svcmd_BotList_f	 },
 	{ "entitylist",  0, "",										   "Prints a list of all entities on the server and their types",	 Svcmd_EntityList_f  },
 	{ "forceteam",	 1, "<client>",								   "Force a player onto another team",								 Svcmd_ForceTeam_f	 },
+	{ "say",		 1, "<message>",							   "Broadcasts a message into the console of all players.",			 Svcmd_Say_f		 },
 	{ "game_memory", 0, "",										   "Prints how much game memory is allocated out of the total pool", Svcmd_GameMem_f	 },
-	
-	#if _DEBUG // Going to assume it is set to debug-only for a reason.
-	{ "jk2gameplay", 1, "<version>",							   "Prints how much game memory is allocated out of the total pool", Svcmd_JK2gameplay_f },
-	#endif
-
 	{ "listip",		 0, "",										   "Prints the entire IP blacklist",								 Svcmd_ListIP_f		 },
 	{ "removeip",	 1, "<ip-mask>",							   "Remove a banned IP from the blacklist",							 Svcmd_RemoveIP_f	 },
+	
+	// Going to assume it is set to debug-only for a reason.
+	#if _DEBUG
+	{ "jk2gameplay", 1, "<version>",							   "Prints how much game memory is allocated out of the total pool", Svcmd_JK2gameplay_f },
+	#endif
 };
 
 rconCommandSize = sizeof(rconCommand) / sizeof(rconCommand[0]);
@@ -466,28 +475,31 @@ qboolean ConsoleCommand( void )
 		}
 		else
 		{
-			// Not enough arguments, print help message.
-			G_Printf("%s[%sError%s]%s Insufficient arguments%s.\n%sDescription%s: %s%s%s.\n%sUsage%s: %s%s %s%s.\n", 
-				LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, 
-				LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->description, LM_SYMBOL_COLOR, 
-				LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->cmd, command->usage, LM_SYMBOL_COLOR);
+			G_Printf("%s[%sError%s]%s Insufficient arguments%s.\n", LM_SYMBOL_COLOR, LM_ERROR_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR);
+
+			// If guidance on usage exists ...
+			if (strlen(command->description))
+			{
+				G_Printf("%sDescription%s: %s%s%s.\n", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->description, LM_SYMBOL_COLOR);
+			}
+
+			if (strlen(command->usage))
+			{
+				G_Printf("%sUsage%s: /%s%s %s%s.\n", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, command->cmd, command->usage, LM_SYMBOL_COLOR);
+			}
+
+			// No guidance found.
+			if (!strlen(command->description) && !strlen(command->usage))
+			{
+				G_Printf("%sNo description and usage guidance exists for this command at this time%s.\n", LM_TEXT_COLOR, LM_SYMBOL_COLOR);
+			}
+
 			return qtrue;
 		}
 	}
 	//[/Attano]
 
-	if (g_dedicated.integer) 
-	{
-		if (!Q_stricmp (cmd, "say")) 
-		{
-			trap_SendServerCommand(-1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(1)));
-			return qtrue;
-		}
-		// everything else will also be printed as a say command
-		trap_SendServerCommand(-1, va("print \"%s[%sServer%s]%s %s\n\"", LM_SYMBOL_COLOR, LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, ConcatArgs(0)));
-		return qtrue;
-	}
-
+	G_Printf("%sUnknown command %s'%s%s%s'.\n", LM_TEXT_COLOR, LM_SYMBOL_COLOR, LM_TEXT_COLOR, cmd, LM_SYMBOL_COLOR);
 	return qfalse;
 }
 

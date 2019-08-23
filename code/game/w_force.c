@@ -603,7 +603,7 @@ void WP_SpawnInitForcePowers( gentity_t *ent )
 	}
 }
 
-int ForcePowerUsableOn(gentity_t *attacker, gentity_t *other, forcePowers_t forcePower)
+int ForcePowerUsableOn( gentity_t *attacker, gentity_t *other, forcePowers_t forcePower )
 {
 	//[Attano] - Exceptions for whether or not we can use force on a target.
 	mvclientSession_t *mvSessAttk  = &mv_clientSessions[attacker - g_entities];

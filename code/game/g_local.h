@@ -413,12 +413,14 @@ typedef struct {
 
 extern lmEntities_t lmEntity[MAX_GENTITIES];
 
+// Struct for say commands.
 typedef struct {
 	const char	*cmd;
 	const char 	*description;
 	void		( *function )( gentity_t * );
 } lmSayCommands_t;
 
+// Struct for Rcon commands.
 typedef struct {
 	const char	*cmd;
 	int			minArgs;
@@ -426,6 +428,22 @@ typedef struct {
 	const char 	*description;
 	void		( *function )( void );
 } lmRconCommands_t;
+
+// Struct for client commands.
+typedef struct {
+	const char	*cmd;
+	int			minArgs;
+	const char 	*usage;
+	const char 	*description;
+	void		( *function )( gentity_t * );
+	int			flags;
+} lmClientCommands_t;
+
+// Flags for client commands.
+#define CMD_NOINTERMISSION	0x01
+#define CMD_CHEAT			0x02
+#define CMD_ALIVE			0x04
+#define CMD_UNLISTED		0x08
 //[/Attano]
 
 // JK2MV

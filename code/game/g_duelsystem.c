@@ -525,17 +525,17 @@ void LM_DuelHandle( gentity_t *ent, int action )
 					{
 						gentity_t *check = &g_entities[i];
 
-						if (i != challenged - g_entities && i != ent - g_entities)
-						{
-							if (mvapi)
-							{
-								mv_entities[i].snapshotIgnore[ent - g_entities] = 1;
-								mv_entities[i].snapshotIgnore[challenged - g_entities] = 1;
-							}
+						if (i == challenged - g_entities || i == ent - g_entities)
+							continue;
 
-							if (check->client->ps.duelIndex == (ent - g_entities || challenged - g_entities))
-								check->client->ps.duelIndex = ENTITYNUM_NONE;
+						if (mvapi)
+						{
+							mv_entities[i].snapshotIgnore[ent - g_entities]		   = 1;
+							mv_entities[i].snapshotIgnore[challenged - g_entities] = 1;
 						}
+
+						if (check->client->ps.duelIndex == ent - g_entities || check->client->ps.duelIndex == challenged - g_entities)
+							check->client->ps.duelIndex = ENTITYNUM_NONE;
 					}
 				}
 				else
